@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(D:anacondaenvswlwpython.exe:*)",
+      "Bash(D:/anaconda/envs/wlw/python.exe:*)",
+      "Bash(npm run dev:*)"
+    ]
+  }
+}

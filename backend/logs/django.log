@@ -1,0 +1,15 @@
+INFO 2026-01-20 22:43:17,961 autoreload Watching for file changes with StatReloader
+INFO 2026-01-20 22:45:35,552 autoreload Watching for file changes with StatReloader
+INFO 2026-01-20 22:45:58,452 basehttp "OPTIONS /api/v1/auth/login/ HTTP/1.1" 200 0
+INFO 2026-01-20 22:45:59,068 basehttp "POST /api/v1/auth/login/ HTTP/1.1" 200 833
+INFO 2026-01-20 22:46:00,194 basehttp "OPTIONS /api/v1/auth/user/ HTTP/1.1" 200 0
+INFO 2026-01-20 22:46:00,448 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:46:55,203 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:47:04,184 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:47:23,199 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:47:39,226 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:47:56,207 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:49:17,267 autoreload Watching for file changes with StatReloader
+INFO 2026-01-20 22:49:42,747 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:50:25,226 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-20 22:50:40,820 autoreload Watching for file changes with StatReloader

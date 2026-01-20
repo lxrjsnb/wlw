@@ -1,0 +1,45 @@
+# Django核心
+Django==4.2.11
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-filter==23.5
+
+# 数据库
+mysqlclient==2.2.4
+psycopg2-binary==2.9.9
+
+# 认证
+djangorestframework-simplejwt==5.3.1
+
+# MQTT
+paho-mqtt==2.0.0
+
+# WebSocket
+channels==4.0.0
+channels-redis==4.2.0
+
+# 异步任务
+celery==5.3.6
+redis==5.0.1
+
+# 数据处理
+pandas==2.2.0
+openpyxl==3.1.2
+
+# API文档
+drf-yasg==1.21.7
+
+# 数据验证
+pydantic==2.5.3
+
+# 日志
+python-json-logger==2.0.7
+
+# 工具类
+python-dotenv==1.0.0
+gunicorn==21.2.0
+
+# 测试
+pytest==7.4.4
+pytest-django==4.7.0
+pytest-cov==4.1.0
