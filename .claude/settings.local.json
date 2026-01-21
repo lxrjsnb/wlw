@@ -5,7 +5,10 @@
       "Bash(pip install:*)",
       "Bash(D:anacondaenvswlwpython.exe:*)",
       "Bash(D:/anaconda/envs/wlw/python.exe:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(\"D:\\\\wlw\\\\.venv\\\\Scripts\\\\python.exe\":*)",
+      "Bash(D:/wlw/.venv/Scripts/python.exe:*)",
+      "Bash(conda activate:*)"
     ]
   }
 }

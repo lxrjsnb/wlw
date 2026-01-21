@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'drf_yasg',
 
     # 项目应用
+    'core',
     'apps.users',
     'apps.devices',
     'apps.sensors',
