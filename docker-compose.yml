@@ -1,0 +1,120 @@
+# ============================================================
+# Docker Compose 配置文件
+# 物联网环境监测系统
+# ============================================================
+#
+# 使用说明：
+# 1. 在本地构建镜像：
+#    docker build -t wlw-backend:v0.1 ./backend
+#    docker build -t wlw-frontend:v0.1 ./frontend
+#
+# 2. 导出镜像：
+#    docker save wlw-backend:v0.1 -o wlw-backend.tar
+#    docker save wlw-frontend:v0.1 -o wlw-frontend.tar
+#
+# 3. 上传到服务器后加载：
+#    docker load -i wlw-backend.tar
+#    docker load -i wlw-frontend.tar
+#
+# 4. 启动服务：
+#    docker-compose up -d
+# ============================================================
+
+services:
+  # 后端服务
+  backend:
+    image: wlw-backend:v0.1
+    container_name: wlw_backend
+    restart: always
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-change-this-in-production}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,39.105.122.26}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - wlw_network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Worker
+  celery_worker:
+    image: wlw-backend:v0.1
+    container_name: wlw_celery_worker
+    restart: always
+    command: celery -A iot_system worker -l info
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-change-this-in-production}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - wlw_network
+    depends_on:
+      - redis
+
+  # Celery Beat（定时任务调度器）
+  celery_beat:
+    image: wlw-backend:v0.1
+    container_name: wlw_celery_beat
+    restart: always
+    command: celery -A iot_system beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-change-this-in-production}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - wlw_network
+    depends_on:
+      - redis
+
+  # Redis 服务
+  redis:
+    image: redis:7-alpine
+    container_name: wlw_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wlw_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 前端服务
+  frontend:
+    image: wlw-frontend:v0.1
+    container_name: wlw_frontend
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - wlw_network
+    depends_on:
+      - backend
+
+# 数据卷
+volumes:
+  redis_data:
+    driver: local
+
+# 网络配置
+networks:
+  wlw_network:
+    driver: bridge
