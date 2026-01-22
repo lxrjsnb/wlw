@@ -698,3 +698,74 @@ INFO 2026-01-21 21:30:19,718 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 
 INFO 2026-01-21 21:30:19,943 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
 INFO 2026-01-21 21:30:20,204 basehttp "GET /api/v1/alarms/records/?page=1&page_size=5&status=pending HTTP/1.1" 200 137
 INFO 2026-01-21 21:30:20,630 basehttp "GET /api/v1/devices/?page=1&page_size=5 HTTP/1.1" 200 1399
+INFO 2026-01-22 12:51:04,204 autoreload Watching for file changes with StatReloader
+INFO 2026-01-22 12:52:57,140 basehttp "OPTIONS /api/v1/auth/login/ HTTP/1.1" 200 0
+INFO 2026-01-22 12:52:57,544 basehttp "POST /api/v1/auth/login/ HTTP/1.1" 200 833
+INFO 2026-01-22 12:52:58,410 basehttp "OPTIONS /api/v1/auth/user/ HTTP/1.1" 200 0
+INFO 2026-01-22 12:52:58,589 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-22 12:52:58,646 basehttp "OPTIONS /api/v1/alarms/stats/ HTTP/1.1" 200 0
+INFO 2026-01-22 12:52:58,647 basehttp "OPTIONS /api/v1/devices/stats/ HTTP/1.1" 200 0
+INFO 2026-01-22 12:52:58,889 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 12:52:59,118 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
+INFO 2026-01-22 12:52:59,124 basehttp "OPTIONS /api/v1/alarms/records/?page=1&page_size=5&status=pending HTTP/1.1" 200 0
+INFO 2026-01-22 12:52:59,289 basehttp "GET /api/v1/alarms/records/?page=1&page_size=5&status=pending HTTP/1.1" 200 137
+INFO 2026-01-22 12:52:59,295 basehttp "OPTIONS /api/v1/devices/?page=1&page_size=5 HTTP/1.1" 200 0
+INFO 2026-01-22 12:52:59,546 basehttp "GET /api/v1/devices/?page=1&page_size=5 HTTP/1.1" 200 1399
+INFO 2026-01-22 12:53:04,408 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-22 12:53:04,507 basehttp "OPTIONS /api/v1/devices/?page=1&page_size=20&keyword=&status= HTTP/1.1" 200 0
+INFO 2026-01-22 12:53:04,519 basehttp "OPTIONS /api/v1/devices/sensor-types/ HTTP/1.1" 200 0
+INFO 2026-01-22 12:53:04,702 basehttp "GET /api/v1/devices/?page=1&page_size=20&keyword=&status= HTTP/1.1" 200 1400
+INFO 2026-01-22 12:53:04,723 basehttp "GET /api/v1/devices/sensor-types/ HTTP/1.1" 200 2406
+INFO 2026-01-22 12:53:04,732 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 12:53:06,226 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 12:53:06,299 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
+INFO 2026-01-22 12:53:06,454 basehttp "GET /api/v1/alarms/records/?page=1&page_size=5&status=pending HTTP/1.1" 200 137
+INFO 2026-01-22 12:53:06,628 basehttp "GET /api/v1/devices/?page=1&page_size=5 HTTP/1.1" 200 1399
+INFO 2026-01-22 13:00:08,807 basehttp "OPTIONS /api/v1/devices/?page_size=100 HTTP/1.1" 200 0
+INFO 2026-01-22 13:00:14,590 basehttp "GET /api/v1/devices/?page=1&page_size=20&keyword=&status= HTTP/1.1" 200 1400
+INFO 2026-01-22 13:00:14,591 basehttp - Broken pipe from ('127.0.0.1', 53121)
+INFO 2026-01-22 13:00:14,674 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-22 13:00:15,555 basehttp - Broken pipe from ('127.0.0.1', 53122)
+INFO 2026-01-22 13:00:16,335 basehttp "GET /api/v1/devices/sensor-types/ HTTP/1.1" 200 2406
+INFO 2026-01-22 13:00:16,336 basehttp - Broken pipe from ('127.0.0.1', 53123)
+INFO 2026-01-22 13:00:17,850 basehttp "GET /api/v1/devices/?page_size=100 HTTP/1.1" 200 1401
+INFO 2026-01-22 13:00:25,820 basehttp "GET /api/v1/devices/sensor-types/ HTTP/1.1" 200 2406
+INFO 2026-01-22 13:00:25,837 basehttp "OPTIONS /api/v1/sensors/data/history/DEV10004/?device_id=DEV10004&sensor_type=&hours=24&start_time=&end_time=&page=1&page_size=20 HTTP/1.1" 200 0
+INFO 2026-01-22 13:00:55,890 basehttp - Broken pipe from ('127.0.0.1', 53145)
+INFO 2026-01-22 13:02:20,952 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 13:02:24,693 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
+INFO 2026-01-22 13:02:30,907 basehttp "GET /api/v1/alarms/records/?page=1&page_size=5&status=pending HTTP/1.1" 200 137
+INFO 2026-01-22 13:02:39,752 basehttp "GET /api/v1/devices/?page=1&page_size=5 HTTP/1.1" 200 1399
+INFO 2026-01-22 13:08:35,379 basehttp "GET /api/v1/auth/user/ HTTP/1.1" 200 220
+INFO 2026-01-22 13:08:37,698 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 13:08:39,218 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
+INFO 2026-01-22 13:08:46,422 basehttp "GET /api/v1/alarms/records/?page=1&page_size=5&status=pending HTTP/1.1" 200 137
+INFO 2026-01-22 13:08:53,643 basehttp "GET /api/v1/devices/?page=1&page_size=5 HTTP/1.1" 200 1399
+INFO 2026-01-22 13:26:19,336 autoreload Watching for file changes with StatReloader
+INFO 2026-01-22 13:48:05,745 basehttp "POST /api/v1/auth/login/ HTTP/1.1" 200 833
+INFO 2026-01-22 13:48:06,995 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 13:48:07,002 basehttp "GET /api/v1/sensors/data/?page=1&page_size=1 HTTP/1.1" 200 480
+INFO 2026-01-22 13:48:07,064 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
+INFO 2026-01-22 13:48:09,261 basehttp "GET /api/v1/devices/sensor-types/?page=1&page_size=100 HTTP/1.1" 200 2407
+INFO 2026-01-22 13:48:09,474 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:48:11,513 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:48:13,165 basehttp "GET /api/v1/devices/?page=1&page_size=20&sensor_type=co2 HTTP/1.1" 200 138
+INFO 2026-01-22 13:48:13,997 basehttp "GET /api/v1/devices/?page=1&page_size=20&sensor_type=co2 HTTP/1.1" 200 138
+INFO 2026-01-22 13:48:15,723 basehttp "GET /api/v1/devices/?page=1&page_size=20&status=online&sensor_type=co2 HTTP/1.1" 200 138
+INFO 2026-01-22 13:48:17,129 basehttp "GET /api/v1/devices/?page=1&page_size=20&status=offline&sensor_type=co2 HTTP/1.1" 200 138
+INFO 2026-01-22 13:48:19,180 basehttp "GET /api/v1/devices/?page=1&page_size=20&sensor_type=co2 HTTP/1.1" 200 138
+INFO 2026-01-22 13:48:20,272 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:48:21,504 basehttp "GET /api/v1/devices/?page=1&page_size=20&status=online HTTP/1.1" 200 1400
+INFO 2026-01-22 13:48:30,236 basehttp "GET /api/v1/devices/sensor-types/?page=1&page_size=100 HTTP/1.1" 200 2407
+INFO 2026-01-22 13:48:30,436 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:48:32,930 basehttp "GET /api/v1/sensors/data/?page=1&page_size=1 HTTP/1.1" 200 480
+INFO 2026-01-22 13:48:32,955 basehttp "GET /api/v1/devices/stats/ HTTP/1.1" 200 118
+INFO 2026-01-22 13:48:33,007 basehttp "GET /api/v1/alarms/stats/ HTTP/1.1" 200 191
+INFO 2026-01-22 13:48:35,864 basehttp "GET /api/v1/devices/sensor-types/?page=1&page_size=100 HTTP/1.1" 200 2407
+INFO 2026-01-22 13:48:36,075 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:48:59,257 basehttp "GET /api/v1/devices/sensor-types/?page=1&page_size=100 HTTP/1.1" 200 2407
+INFO 2026-01-22 13:48:59,450 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:49:06,822 basehttp "GET /api/v1/devices/logs/DEV10004/?page=1&page_size=10 HTTP/1.1" 200 1859
+INFO 2026-01-22 13:49:10,153 basehttp "GET /api/v1/devices/logs/DEV10004/?page=2&page_size=10 HTTP/1.1" 200 830
+INFO 2026-01-22 13:49:12,967 basehttp "GET /api/v1/devices/?page=1&page_size=20 HTTP/1.1" 200 1400
+INFO 2026-01-22 13:49:50,583 basehttp "GET /api/v1/devices/?page=1&page_size=10 HTTP/1.1" 200 1400

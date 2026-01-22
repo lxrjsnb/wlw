@@ -1,116 +1,81 @@
-/**
- * 路由配置
- * Router configuration
- */
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '@/store/modules/user'
-import { ElMessage } from 'element-plus'
+import MainLayout from '../layout/MainLayout.vue'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/views/Login.vue'),
-    meta: { title: '登录', requiresAuth: false }
-  },
-  {
-    path: '/',
-    name: 'Layout',
-    component: () => import('@/views/Layout.vue'),
-    redirect: '/dashboard',
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('@/views/Dashboard/Index.vue'),
-        meta: { title: '仪表盘', icon: 'DataAnalysis' }
-      },
-      {
-        path: 'devices',
-        name: 'DeviceList',
-        component: () => import('@/views/Device/Index.vue'),
-        meta: { title: '设备管理', icon: 'Monitor' }
-      },
-      {
-        path: 'devices/:id',
-        name: 'DeviceDetail',
-        component: () => import('@/views/Device/Detail.vue'),
-        meta: { title: '设备详情', icon: 'Monitor' }
-      },
-      {
-        path: 'monitor/realtime',
-        name: 'RealtimeMonitor',
-        component: () => import('@/views/Monitor/Realtime.vue'),
-        meta: { title: '实时监控', icon: 'Connection' }
-      },
-      {
-        path: 'monitor/history',
-        name: 'HistoryMonitor',
-        component: () => import('@/views/Monitor/History.vue'),
-        meta: { title: '历史数据', icon: 'TrendCharts' }
-      },
-      {
-        path: 'alarms',
-        name: 'AlarmList',
-        component: () => import('@/views/Alarm/Index.vue'),
-        meta: { title: '告警管理', icon: 'Warning' }
-      },
-      {
-        path: 'alarms/rules',
-        name: 'AlarmRules',
-        component: () => import('@/views/Alarm/Rules.vue'),
-        meta: { title: '告警规则', icon: 'Setting' }
-      },
-      {
-        path: 'settings',
-        name: 'Settings',
-        component: () => import('@/views/Settings/Index.vue'),
-        meta: { title: '系统设置', icon: 'Tools' }
-      }
-    ]
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    component: () => import('@/views/404.vue'),
-    meta: { title: '404', requiresAuth: false }
-  }
+    {
+        path: '/login',
+        name: 'Login',
+        component: () => import('../views/LoginView.vue'),
+        meta: { title: '登录' }
+    },
+    {
+        path: '/',
+        component: MainLayout,
+        redirect: '/dashboard',
+        children: [
+            {
+                path: 'dashboard',
+                name: 'Dashboard',
+                component: () => import('../views/DashboardView.vue'),
+                meta: { title: '仪表盘', requiresAuth: true }
+            },
+            {
+                path: 'devices',
+                name: 'DeviceList',
+                component: () => import('../views/device/DeviceList.vue'),
+                meta: { title: '设备管理', requiresAuth: true }
+            },
+            {
+                path: 'monitoring',
+                name: 'Monitoring',
+                component: () => import('../views/data/RealTimeData.vue'),
+                meta: { title: '实时监控', requiresAuth: true }
+            },
+            {
+                path: 'alarms',
+                name: 'AlarmCenter',
+                component: () => import('../views/alarm/AlarmList.vue'),
+                meta: { title: '告警中心', requiresAuth: true }
+            }
+        ]
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        redirect: '/dashboard'
+    }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes
+    history: createWebHistory(),
+    routes
 })
 
-// 路由守卫
-router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
+router.beforeEach(async (to, from, next) => {
+    document.title = to.meta?.title ? `${to.meta.title} - IoT 监控系统` : 'IoT 监控系统'
+    const auth = useAuthStore()
 
-  // 设置页面标题
-  document.title = to.meta.title
-    ? `${to.meta.title} - ${import.meta.env.VITE_APP_TITLE}`
-    : import.meta.env.VITE_APP_TITLE
-
-  // 检查是否需要认证
-  if (to.meta.requiresAuth !== false) {
-    if (!userStore.token) {
-      ElMessage.warning('请先登录')
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      })
-      return
+    if (to.path === '/login' && auth.isAuthenticated) {
+        next({ path: '/', replace: true })
+        return
     }
-  }
 
-  // 如果已登录且访问登录页，重定向到首页
-  if (to.path === '/login' && userStore.token) {
-    next({ path: '/' })
-    return
-  }
+    if (to.meta.requiresAuth && !auth.isAuthenticated) {
+        next({ path: '/login', query: { next: to.fullPath } })
+        return
+    }
 
-  next()
+    if (auth.isAuthenticated && !auth.user) {
+        try {
+            await auth.fetchMe()
+        } catch {
+            await auth.logout()
+            next({ path: '/login', query: { next: to.fullPath } })
+            return
+        }
+    }
+
+    next()
 })
 
 export default router

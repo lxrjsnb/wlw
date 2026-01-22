@@ -1,45 +1,57 @@
-# Django核心
+# ============================================================
+# IoT Environment Monitoring System - Python Dependencies
+# 物联网环境监测系统 - Python 依赖包
+# ============================================================
+
+# Django Core
+# ------------------------------------------------------------
 Django==4.2.11
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 django-filter==23.5
 
-# 数据库
-mysqlclient==2.2.4
-psycopg2-binary==2.9.9
+# Database
+# ------------------------------------------------------------
+PyMySQL==1.1.0
 
-# 认证
+# Authentication
+# ------------------------------------------------------------
 djangorestframework-simplejwt==5.3.1
 
-# MQTT
+# MQTT Client
+# ------------------------------------------------------------
 paho-mqtt==2.0.0
 
-# WebSocket
+# WebSocket (Channels)
+# ------------------------------------------------------------
 channels==4.0.0
 channels-redis==4.2.0
 
-# 异步任务
+# Celery for async tasks
+# ------------------------------------------------------------
 celery==5.3.6
 redis==5.0.1
 
-# 数据处理
+# Data processing (for export functionality)
+# ------------------------------------------------------------
 pandas==2.2.0
 openpyxl==3.1.2
 
-# API文档
+# API Documentation
+# ------------------------------------------------------------
 drf-yasg==1.21.7
 
-# 数据验证
-pydantic==2.5.3
-
-# 日志
+# Logging
+# ------------------------------------------------------------
 python-json-logger==2.0.7
 
-# 工具类
+# Utilities
+# ------------------------------------------------------------
 python-dotenv==1.0.0
 gunicorn==21.2.0
 
-# 测试
+# Testing
+# ------------------------------------------------------------
 pytest==7.4.4
 pytest-django==4.7.0
 pytest-cov==4.1.0

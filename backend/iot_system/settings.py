@@ -8,6 +8,10 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
+# 使用 PyMySQL 替代 mysqlclient
+import pymysql
+pymysql.install_as_MySQLdb()
+
 # 加载.env文件
 load_dotenv()
 

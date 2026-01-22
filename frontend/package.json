@@ -1,32 +1,26 @@
 {
-  "name": "iot-frontend",
-  "version": "1.0.0",
-  "description": "IoT环境监测系统前端",
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.15",
-    "vue-router": "^4.2.5",
-    "pinia": "^2.1.7",
-    "axios": "^1.6.5",
-    "element-plus": "^2.5.4",
-    "@element-plus/icons-vue": "^2.3.1",
-    "echarts": "^5.4.3",
-    "vue-echarts": "^6.6.8",
-    "dayjs": "^1.11.10"
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.13.2",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.13.1",
+    "pinia": "^3.0.4",
+    "sass": "^1.97.3",
+    "vue": "^3.5.24",
+    "vue-echarts": "^8.0.1",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.3",
-    "vite": "^5.0.11",
-    "sass": "^1.70.0",
-    "unplugin-auto-import": "^0.17.5",
-    "unplugin-vue-components": "^0.26.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-vue": "^9.20.1"
+    "@vitejs/plugin-vue": "^6.0.1",
+    "vite": "^7.2.4"
   }
 }
