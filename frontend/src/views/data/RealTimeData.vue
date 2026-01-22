@@ -94,7 +94,7 @@ async function loadHistory() {
       sensor_type: selectedSensorCode.value || undefined,
       hours: 24,
     })
-    historyPoints.value = res?.data?.data || []
+    historyPoints.value = res?.data || []
   } catch (e) {
     ElMessage.error(e?.message || '加载历史数据失败')
   } finally {

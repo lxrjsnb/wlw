@@ -27,12 +27,15 @@ const handleLogin = async () => {
     const next = route.query.next ? String(route.query.next) : '/'
     router.replace(next)
   } catch (e) {
+    const status = e?.response?.status
     const msg =
       e?.response?.data?.message ||
+      e?.response?.data?.detail ||
       e?.payload?.message ||
+      (status === 401 ? '用户名或密码错误' : '') ||
       e?.message ||
-      '登录失败，请检查账号密码'
-    ElMessage.error(msg)
+      '登录失败'
+    ElMessage.error(String(msg))
   } finally {
     loading.value = false
   }

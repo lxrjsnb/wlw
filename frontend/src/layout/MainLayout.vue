@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Monitor, DataLine, Bell, Setting, SwitchButton, Fold, Expand, User } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
+import ErrorBoundary from '../components/ErrorBoundary.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -100,7 +101,9 @@ const toggleSidebar = () => {
       <el-main class="main">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <ErrorBoundary>
+              <component :is="Component" />
+            </ErrorBoundary>
           </transition>
         </router-view>
       </el-main>
