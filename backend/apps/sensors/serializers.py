@@ -97,20 +97,6 @@ class SensorDataBatchSerializer(serializers.Serializer):
         return value
 
 
-class SensorDataQuerySerializer(serializers.Serializer):
-    """
-    传感器数据查询参数序列化器
-    """
-    device_id = serializers.CharField(required=False)
-    sensor_type = serializers.CharField(required=False)
-    start_time = serializers.DateTimeField(required=False)
-    end_time = serializers.DateTimeField(required=False)
-    quality = serializers.ChoiceField(
-        choices=['good', 'uncertain', 'bad'],
-        required=False
-    )
-
-
 class SensorDataStatisticsSerializer(serializers.Serializer):
     """
     传感器数据统计序列化器

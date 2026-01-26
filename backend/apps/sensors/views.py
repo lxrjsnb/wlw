@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
+from rest_framework.negotiation import DefaultContentNegotiation
 from django.db.models import Avg, Min, Max, Count
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -15,6 +16,13 @@ from django.http import HttpResponse
 from django.conf import settings
 import csv
 import json
+
+
+# 禁用内容协商的协商类
+class NoContentNegotiation(DefaultContentNegotiation):
+    def select_renderer(self, request, renderers, format=None):
+        """直接返回第一个渲染器，跳过协商"""
+        return (renderers[0], renderers[0].media_type) if renderers else (None, None)
 
 from .models import SensorData, SensorDataSummary
 from .serializers import (
@@ -294,6 +302,9 @@ class SensorDataExportView(APIView):
     Export sensor data to CSV/Excel
     """
     permission_classes = [permissions.IsAuthenticated]
+    # 禁用DRF的内容协商，直接返回HttpResponse
+    content_negotiation_class = NoContentNegotiation
+    renderer_classes = []
 
     def get(self, request):
         """导出传感器数据"""
@@ -302,7 +313,8 @@ class SensorDataExportView(APIView):
         sensor_type = request.query_params.get('sensor_type')
         start_time = request.query_params.get('start_time')
         end_time = request.query_params.get('end_time')
-        export_format = request.query_params.get('format', 'csv')
+        # 改用 export_format 避免与 DRF 的 format 参数冲突
+        export_format = request.query_params.get('export_format') or request.query_params.get('format', 'csv')
 
         # 构建查询
         queryset = SensorData.objects.select_related('device', 'sensor_type')
@@ -343,18 +355,34 @@ class SensorDataExportView(APIView):
         # 限制导出数量
         queryset = queryset.order_by('-timestamp')[:10000]
 
+        # 检查是否有数据
+        count = queryset.count()
+        if count == 0:
+            return Response({
+                'code': 400,
+                'message': '该设备在指定条件下没有数据可导出，请检查设备ID、传感器类型和时间范围',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 转换为DataFrame
-        data = queryset.values(
-            'device__device_id',
-            'device__name',
-            'sensor_type__name',
-            'sensor_type__code',
-            'value',
-            'unit',
-            'timestamp',
-            'quality'
-        )
-        df = pd.DataFrame(list(data))
+        try:
+            data = list(queryset.values(
+                'device__device_id',
+                'device__name',
+                'sensor_type__name',
+                'sensor_type__code',
+                'value',
+                'unit',
+                'timestamp',
+                'quality'
+            ))
+            df = pd.DataFrame(data)
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'message': f'数据导出失败: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if df.empty:
             return Response({

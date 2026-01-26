@@ -4,9 +4,13 @@ Django settings for IoT Environment Monitoring System
 """
 
 import os
+import warnings
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
+
+# 抑制 drf_yasg 的 pkg_resources 弃用警告
+warnings.filterwarnings('ignore', category=UserWarning, module='drf_yasg')
 
 # 使用 PyMySQL 替代 mysqlclient
 import pymysql

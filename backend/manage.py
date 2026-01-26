@@ -2,6 +2,10 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+import warnings
+
+# 抑制 drf_yasg 的 pkg_resources 弃用警告（必须在其他导入之前）
+warnings.filterwarnings('ignore', category=UserWarning, module='drf_yasg')
 
 
 def main():
