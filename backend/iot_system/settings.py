@@ -14,6 +14,8 @@ warnings.filterwarnings('ignore', category=UserWarning, module='drf_yasg')
 
 # 使用 PyMySQL 替代 mysqlclient
 import pymysql
+# 兼容 Django 4.2+ 的版本检查
+pymysql.version_info = (2, 2, 1, 'final', 0)
 pymysql.install_as_MySQLdb()
 
 # 加载.env文件

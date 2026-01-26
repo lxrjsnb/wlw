@@ -1,11 +1,11 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts, Download, Calendar, DataLine } from '@element-plus/icons-vue'
 import VChart from 'vue-echarts'
 import { listDevices } from '../../api/devices'
-import { listSensorData } from '../../api/sensors'
-import { formatDateTime, toIsoString } from '../../utils/date'
+import { listSensorData, getDeviceStatistics, exportSensorData } from '../../api/sensors'
+import { toIsoString } from '../../utils/date'
 
 const loading = ref(false)
 const devices = ref([])
@@ -18,6 +18,23 @@ dateRange.value = [defaultStartDate, new Date()]
 
 const selectedDeviceId = ref('')
 const reportType = ref('overview')
+
+// 监听设备变化，自动加载数据
+watch(selectedDeviceId, (newDeviceId, oldDeviceId) => {
+  // 避免初始化时重复加载
+  if (newDeviceId && newDeviceId !== oldDeviceId) {
+    console.log('设备切换:', { old: oldDeviceId, new: newDeviceId })
+    loadStatistics()
+  }
+})
+
+// 监听日期范围变化
+watch(dateRange, (newRange) => {
+  if (newRange && newRange.length === 2 && selectedDeviceId.value) {
+    console.log('日期范围变化:', newRange)
+    loadStatistics()
+  }
+})
 
 const statisticsData = ref({
   totalDataPoints: 0,
@@ -42,50 +59,114 @@ async function loadDevices() {
 }
 
 async function loadStatistics() {
-  if (!selectedDeviceId.value || dateRange.value?.length !== 2) return
+  const targetDeviceId = selectedDeviceId.value
+  if (!targetDeviceId || dateRange.value?.length !== 2) {
+    ElMessage.warning('请选择设备和日期范围')
+    return
+  }
 
   loading.value = true
   try {
-    // TODO: 调用统计 API
-    // const res = await getStatistics({
-    //   device_id: selectedDeviceId.value,
-    //   start_time: toIsoString(dateRange.value[0]),
-    //   end_time: toIsoString(dateRange.value[1]),
-    // })
-    // statisticsData.value = res
+    const startTime = toIsoString(dateRange.value[0])
+    const endTime = toIsoString(dateRange.value[1])
 
-    // 模拟数据
+    console.log('加载统计数据:', { targetDeviceId, startTime, endTime })
+
+    // 并行获取温度、湿度、PM2.5的统计数据
+    const [tempStats, humidityStats, pm25Stats, allData] = await Promise.all([
+      getDeviceStatistics(targetDeviceId, {
+        sensor_type: 'temperature',
+        start_time: startTime,
+        end_time: endTime,
+      }).catch(e => { console.error('温度统计失败:', e); return null; }),
+      getDeviceStatistics(targetDeviceId, {
+        sensor_type: 'humidity',
+        start_time: startTime,
+        end_time: endTime,
+      }).catch(e => { console.error('湿度统计失败:', e); return null; }),
+      getDeviceStatistics(targetDeviceId, {
+        sensor_type: 'pm25',
+        start_time: startTime,
+        end_time: endTime,
+      }).catch(e => { console.error('PM2.5统计失败:', e); return null; }),
+      listSensorData({
+        device_id: targetDeviceId,
+        start_time: startTime,
+        end_time: endTime,
+        page: 1,
+        page_size: 1000,
+      }).catch(e => { console.error('列表数据获取失败:', e); return null; }),
+    ])
+
+    console.log('API返回:', { tempStats, humidityStats, pm25Stats, allData })
+
+    // 统计数据
     statisticsData.value = {
-      totalDataPoints: 15623,
-      avgTemperature: 24.5,
-      avgHumidity: 58.3,
-      avgPM25: 42.8,
-      dataQuality: { good: 14890, uncertain: 521, bad: 212 },
+      totalDataPoints: allData?.total || 0,
+      avgTemperature: tempStats?.avg || 0,
+      avgHumidity: humidityStats?.avg || 0,
+      avgPM25: pm25Stats?.avg || 0,
+      dataQuality: { good: 0, uncertain: 0, bad: 0 },
     }
 
-    // 模拟趋势数据
-    trendData.value = generateTrendData()
+    // 统计数据质量
+    if (allData?.items) {
+      allData.items.forEach(item => {
+        if (item.quality === 'good') statisticsData.value.dataQuality.good++
+        else if (item.quality === 'uncertain') statisticsData.value.dataQuality.uncertain++
+        else if (item.quality === 'bad') statisticsData.value.dataQuality.bad++
+      })
+    }
+
+    // 处理趋势数据 - 按日期分组
+    trendData.value = processTrendData(allData?.items || [])
+
+    console.log('最终数据:', { statisticsData: statisticsData.value, trendData: trendData.value })
   } catch (e) {
+    console.error('加载统计数据失败:', e)
     ElMessage.error(e?.message || '加载统计数据失败')
   } finally {
     loading.value = false
   }
 }
 
-function generateTrendData() {
-  const data = []
-  const startDate = dateRange.value[0]
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(startDate)
-    date.setDate(date.getDate() + i)
-    data.push({
-      date: date.toLocaleDateString('zh-CN'),
-      temperature: 22 + Math.random() * 5,
-      humidity: 50 + Math.random() * 20,
-      pm25: 30 + Math.random() * 40,
-    })
-  }
-  return data
+function processTrendData(items) {
+  // 按小时和传感器类型分组
+  const hourlyData = {}
+
+  items.forEach(item => {
+    const timestamp = new Date(item.timestamp)
+    // 格式化为 "2024/1/15 14:00" 格式
+    const hourKey = `${timestamp.getFullYear()}/${timestamp.getMonth() + 1}/${timestamp.getDate()} ${String(timestamp.getHours()).padStart(2, '0')}:00`
+
+    if (!hourlyData[hourKey]) {
+      hourlyData[hourKey] = { date: hourKey, temperature: [], humidity: [], pm25: [] }
+    }
+    // API返回的是 sensor_type_code 字段
+    if (item.sensor_type_code === 'temperature') {
+      hourlyData[hourKey].temperature.push(item.value)
+    } else if (item.sensor_type_code === 'humidity') {
+      hourlyData[hourKey].humidity.push(item.value)
+    } else if (item.sensor_type_code === 'pm25') {
+      hourlyData[hourKey].pm25.push(item.value)
+    }
+  })
+
+  // 计算每小时平均值并排序
+  return Object.values(hourlyData)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map(hour => ({
+      date: hour.date,
+      temperature: hour.temperature.length > 0
+        ? hour.temperature.reduce((a, b) => a + b, 0) / hour.temperature.length
+        : 0,
+      humidity: hour.humidity.length > 0
+        ? hour.humidity.reduce((a, b) => a + b, 0) / hour.humidity.length
+        : 0,
+      pm25: hour.pm25.length > 0
+        ? hour.pm25.reduce((a, b) => a + b, 0) / hour.pm25.length
+        : 0,
+    }))
 }
 
 const qualityPieOption = computed(() => {
@@ -111,13 +192,67 @@ const qualityPieOption = computed(() => {
   }
 })
 
+const qualityTableData = computed(() => {
+  const q = statisticsData.value.dataQuality
+  const total = q.good + q.uncertain + q.bad
+  return [
+    { name: '良好', value: q.good, percent: total > 0 ? ((q.good / total) * 100).toFixed(1) : '0.0' },
+    { name: '不确定', value: q.uncertain, percent: total > 0 ? ((q.uncertain / total) * 100).toFixed(1) : '0.0' },
+    { name: '差', value: q.bad, percent: total > 0 ? ((q.bad / total) * 100).toFixed(1) : '0.0' },
+  ]
+})
+
 const trendLineOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
+  tooltip: {
+    trigger: 'axis',
+    formatter: (params) => {
+      const time = params[0]?.axisValue || ''
+      let result = `<div style="margin-bottom: 4px;">${time}</div>`
+      params.forEach(param => {
+        result += `<div style="display: flex; align-items: center; gap: 8px;">
+          <span style="display: inline-block; width: 10px; height: 10px; background: ${param.color}; border-radius: 50%;"></span>
+          <span>${param.seriesName}:</span>
+          <strong>${param.value}</strong>
+        </div>`
+      })
+      return result
+    }
+  },
   legend: { bottom: 0, left: 'center' },
-  grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+  grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+  dataZoom: [
+    {
+      type: 'inside',
+      start: 0,
+      end: 100,
+      minSpan: 10
+    },
+    {
+      type: 'slider',
+      start: 0,
+      end: 100,
+      minSpan: 10,
+      height: 20,
+      bottom: 50
+    }
+  ],
   xAxis: {
     type: 'category',
     data: trendData.value.map(d => d.date),
+    axisLabel: {
+      rotate: 45,
+      formatter: (value) => {
+        // 只显示日期和小时，如 "1/15 14:00"
+        const parts = value.split(' ')
+        if (parts.length === 2) {
+          const dateParts = parts[0].split('/')
+          if (dateParts.length === 3) {
+            return `${dateParts[1]}/${dateParts[2]} ${parts[1]}`
+          }
+        }
+        return value
+      }
+    }
   },
   yAxis: { type: 'value' },
   series: [
@@ -126,21 +261,30 @@ const trendLineOption = computed(() => ({
       type: 'line',
       data: trendData.value.map(d => d.temperature.toFixed(1)),
       smooth: true,
+      symbol: 'circle',
+      symbolSize: 4,
       itemStyle: { color: '#F56C6C' },
+      lineStyle: { width: 2 },
     },
     {
       name: '湿度 (%)',
       type: 'line',
       data: trendData.value.map(d => d.humidity.toFixed(1)),
       smooth: true,
+      symbol: 'circle',
+      symbolSize: 4,
       itemStyle: { color: '#409EFF' },
+      lineStyle: { width: 2 },
     },
     {
       name: 'PM2.5',
       type: 'line',
       data: trendData.value.map(d => d.pm25.toFixed(0)),
       smooth: true,
+      symbol: 'circle',
+      symbolSize: 4,
       itemStyle: { color: '#67C23A' },
+      lineStyle: { width: 2 },
     },
   ],
 }))
@@ -153,11 +297,43 @@ async function exportReport() {
 
   loading.value = true
   try {
-    // TODO: 调用导出 API
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await exportSensorData({
+      device_id: selectedDeviceId.value,
+      start_time: toIsoString(dateRange.value[0]),
+      end_time: toIsoString(dateRange.value[1]),
+      format: 'excel',
+    })
+
+    // http.js 对于 blob 返回整个 response 对象，需要用 response.data 获取 Blob
+    const blob = response.data
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+
+    // 尝试从响应头获取文件名，如果没有则使用默认文件名
+    const contentDisposition = response.headers?.['content-disposition']
+    let filename = `数据报表_${selectedDeviceId.value}_${dateRange.value[0].toLocaleDateString()}.xlsx`
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '')
+        // 处理可能的 UTF-8 编码
+        if (filename.startsWith('UTF-8')) {
+          filename = decodeURIComponent(filename.split("''")[1])
+        }
+      }
+    }
+    link.download = filename
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
     ElMessage.success('报表导出成功')
   } catch (e) {
-    ElMessage.error('导出失败')
+    console.error('导出失败:', e)
+    ElMessage.error(e?.message || '导出失败')
   } finally {
     loading.value = false
   }
@@ -165,7 +341,7 @@ async function exportReport() {
 
 onMounted(async () => {
   await loadDevices()
-  await loadStatistics()
+  // loadStatistics 会在 watch 中自动触发，不需要手动调用
 })
 </script>
 
@@ -190,7 +366,7 @@ onMounted(async () => {
       <div class="filters">
         <el-form :inline="true" @submit.prevent>
           <el-form-item label="设备">
-            <el-select v-model="selectedDeviceId" placeholder="选择设备" filterable @change="loadStatistics">
+            <el-select v-model="selectedDeviceId" placeholder="选择设备" filterable>
               <el-option
                 v-for="d in devices"
                 :key="d.device_id"
@@ -206,17 +382,22 @@ onMounted(async () => {
               range-separator="到"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
-              @change="loadStatistics"
             />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="loadStatistics">查询</el-button>
+            <el-button type="primary" @click="loadStatistics" :loading="loading">查询</el-button>
           </el-form-item>
         </el-form>
       </div>
 
+      <!-- Loading提示 -->
+      <div v-if="loading" style="text-align: center; padding: 40px;">
+        <el-icon class="is-loading" :size="30"><DataLine /></el-icon>
+        <p style="margin-top: 10px;">加载中...</p>
+      </div>
+
       <!-- 统计概览 -->
-      <div class="statistics-overview">
+      <div class="statistics-overview" v-show="!loading">
         <el-row :gutter="20">
           <el-col :span="6">
             <div class="stat-card">
@@ -236,7 +417,7 @@ onMounted(async () => {
               </div>
               <div class="stat-content">
                 <div class="stat-label">平均温度</div>
-                <div class="stat-value">{{ statisticsData.avgTemperature }}°C</div>
+                <div class="stat-value">{{ typeof statisticsData.avgTemperature === 'number' ? statisticsData.avgTemperature.toFixed(1) : statisticsData.avgTemperature }}°C</div>
               </div>
             </div>
           </el-col>
@@ -247,7 +428,7 @@ onMounted(async () => {
               </div>
               <div class="stat-content">
                 <div class="stat-label">平均湿度</div>
-                <div class="stat-value">{{ statisticsData.avgHumidity }}%</div>
+                <div class="stat-value">{{ typeof statisticsData.avgHumidity === 'number' ? statisticsData.avgHumidity.toFixed(1) : statisticsData.avgHumidity }}%</div>
               </div>
             </div>
           </el-col>
@@ -258,7 +439,7 @@ onMounted(async () => {
               </div>
               <div class="stat-content">
                 <div class="stat-label">平均PM2.5</div>
-                <div class="stat-value">{{ statisticsData.avgPM25 }}μg/m³</div>
+                <div class="stat-value">{{ typeof statisticsData.avgPM25 === 'number' ? statisticsData.avgPM25.toFixed(1) : statisticsData.avgPM25 }}μg/m³</div>
               </div>
             </div>
           </el-col>
@@ -266,22 +447,24 @@ onMounted(async () => {
       </div>
 
       <!-- 图表区域 -->
-      <el-row :gutter="20" class="mt-20">
+      <el-row :gutter="20" class="mt-20" v-show="!loading">
         <el-col :span="12">
           <el-card shadow="hover" header="数据质量分布">
             <div class="chart-container">
-              <VChart v-if="!loading" class="chart" :option="qualityPieOption" autoresize />
+              <VChart
+                v-if="trendData.length"
+                class="chart"
+                :option="qualityPieOption"
+                :key="'pie-' + selectedDeviceId"
+                autoresize
+              />
               <el-empty v-else description="暂无数据" />
             </div>
           </el-card>
         </el-col>
         <el-col :span="12">
           <el-card shadow="hover" header="数据质量详情">
-            <el-table :data="[
-              { name: '良好', value: statisticsData.dataQuality.good, percent: ((statisticsData.dataQuality.good / (statisticsData.dataQuality.good + statisticsData.dataQuality.uncertain + statisticsData.dataQuality.bad)) * 100).toFixed(1) },
-              { name: '不确定', value: statisticsData.dataQuality.uncertain, percent: ((statisticsData.dataQuality.uncertain / (statisticsData.dataQuality.good + statisticsData.dataQuality.uncertain + statisticsData.dataQuality.bad)) * 100).toFixed(1) },
-              { name: '差', value: statisticsData.dataQuality.bad, percent: ((statisticsData.dataQuality.bad / (statisticsData.dataQuality.good + statisticsData.dataQuality.uncertain + statisticsData.dataQuality.bad)) * 100).toFixed(1) },
-            ]" size="small">
+            <el-table :data="qualityTableData" size="small">
               <el-table-column prop="name" label="质量等级" />
               <el-table-column prop="value" label="数据点" align="right" />
               <el-table-column label="占比" align="right">
@@ -298,11 +481,17 @@ onMounted(async () => {
       </el-row>
 
       <!-- 趋势图 -->
-      <el-row :gutter="20" class="mt-20">
+      <el-row :gutter="20" class="mt-20" v-show="!loading">
         <el-col :span="24">
           <el-card shadow="hover" header="数据趋势">
             <div class="chart-container">
-              <VChart v-if="!loading && trendData.length" class="chart-large" :option="trendLineOption" autoresize />
+              <VChart
+                v-if="trendData.length"
+                class="chart-large"
+                :option="trendLineOption"
+                :key="'trend-' + selectedDeviceId"
+                autoresize
+              />
               <el-empty v-else description="暂无数据" />
             </div>
           </el-card>
@@ -310,37 +499,41 @@ onMounted(async () => {
       </el-row>
 
       <!-- 详细数据表格 -->
-      <el-row :gutter="20" class="mt-20">
+      <el-row :gutter="20" class="mt-20" v-show="!loading">
         <el-col :span="24">
           <el-card shadow="hover" header="每日数据汇总">
             <el-table :data="trendData" size="small">
               <el-table-column prop="date" label="日期" width="120" />
               <el-table-column label="温度" width="120">
                 <template #default="{ row }">
-                  <span :style="{ color: row.temperature > 28 ? '#F56C6C' : row.temperature < 18 ? '#409EFF' : '' }">
+                  <span v-if="row.temperature > 0" :style="{ color: row.temperature > 28 ? '#F56C6C' : row.temperature < 18 ? '#409EFF' : '' }">
                     {{ row.temperature.toFixed(1) }}°C
                   </span>
+                  <span v-else>-</span>
                 </template>
               </el-table-column>
               <el-table-column label="湿度" width="120">
                 <template #default="{ row }">
-                  <span :style="{ color: row.humidity > 70 ? '#E6A23C' : '' }">
+                  <span v-if="row.humidity > 0" :style="{ color: row.humidity > 70 ? '#E6A23C' : '' }">
                     {{ row.humidity.toFixed(1) }}%
                   </span>
+                  <span v-else>-</span>
                 </template>
               </el-table-column>
               <el-table-column label="PM2.5" width="120">
                 <template #default="{ row }">
-                  <el-tag :type="row.pm25 <= 35 ? 'success' : row.pm25 <= 75 ? 'warning' : 'danger'">
+                  <el-tag v-if="row.pm25 > 0" :type="row.pm25 <= 35 ? 'success' : row.pm25 <= 75 ? 'warning' : 'danger'">
                     {{ row.pm25.toFixed(0) }}μg/m³
                   </el-tag>
+                  <span v-else>-</span>
                 </template>
               </el-table-column>
               <el-table-column label="空气质量评估">
                 <template #default="{ row }">
-                  <span v-if="row.pm25 <= 35" style="color: #67C23A">优</span>
-                  <span v-else-if="row.pm25 <= 75" style="color: #E6A23C">良</span>
-                  <span v-else style="color: #F56C6C">差</span>
+                  <span v-if="row.pm25 <= 35 && row.pm25 > 0" style="color: #67C23A">优</span>
+                  <span v-else-if="row.pm25 <= 75 && row.pm25 > 0" style="color: #E6A23C">良</span>
+                  <span v-else-if="row.pm25 > 75" style="color: #F56C6C">差</span>
+                  <span v-else>-</span>
                 </template>
               </el-table-column>
             </el-table>

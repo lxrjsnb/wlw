@@ -101,7 +101,7 @@ class SensorDataStatisticsSerializer(serializers.Serializer):
     """
     传感器数据统计序列化器
     """
-    device_id = serializers.CharField(required=True)
+    device_id = serializers.CharField(required=False)  # device_id 从URL路径获取，不需要在query参数中传递
     sensor_type = serializers.CharField(required=True)
     start_time = serializers.DateTimeField(required=True)
     end_time = serializers.DateTimeField(required=True)

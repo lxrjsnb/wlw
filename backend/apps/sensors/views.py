@@ -377,6 +377,12 @@ class SensorDataExportView(APIView):
                 'quality'
             ))
             df = pd.DataFrame(data)
+
+            # 转换时区感知的datetime为无时区格式（Excel不支持时区）
+            if 'timestamp' in df.columns and not df['timestamp'].empty:
+                df['timestamp'] = df['timestamp'].apply(
+                    lambda x: x.replace(tzinfo=None) if hasattr(x, 'tzinfo') and x.tzinfo is not None else x
+                )
         except Exception as e:
             return Response({
                 'code': 500,
