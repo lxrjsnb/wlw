@@ -23,20 +23,38 @@ const routes = [
             {
                 path: 'devices',
                 name: 'DeviceList',
-                component: () => import('../views/device/DeviceList.vue'),
+                component: () => import('../views/Device/DeviceList.vue'),
                 meta: { title: '设备管理', requiresAuth: true }
             },
             {
-                path: 'monitoring',
-                name: 'Monitoring',
+                path: 'data/realtime',
+                name: 'RealTimeData',
                 component: () => import('../views/data/RealTimeData.vue'),
                 meta: { title: '实时监控', requiresAuth: true }
             },
             {
                 path: 'alarms',
                 name: 'AlarmCenter',
-                component: () => import('../views/alarm/AlarmList.vue'),
+                component: () => import('../views/Alarm/AlarmList.vue'),
                 meta: { title: '告警中心', requiresAuth: true }
+            },
+            {
+                path: 'users',
+                name: 'UserManagement',
+                component: () => import('../views/User/UserManagement.vue'),
+                meta: { title: '用户管理', requiresAuth: true, requiresAdmin: true }
+            },
+            {
+                path: 'settings',
+                name: 'SystemSettings',
+                component: () => import('../views/System/SystemSettings.vue'),
+                meta: { title: '系统设置', requiresAuth: true, requiresAdmin: true }
+            },
+            {
+                path: 'reports',
+                name: 'DataReport',
+                component: () => import('../views/Report/DataReport.vue'),
+                meta: { title: '数据报表', requiresAuth: true }
             }
         ]
     },
@@ -62,6 +80,11 @@ router.beforeEach(async (to, from, next) => {
 
     if (to.meta.requiresAuth && !auth.isAuthenticated) {
         next({ path: '/login', query: { next: to.fullPath } })
+        return
+    }
+
+    if (to.meta.requiresAdmin && auth.role !== 'admin') {
+        next({ path: '/dashboard' })
         return
     }
 

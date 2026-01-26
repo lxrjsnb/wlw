@@ -132,7 +132,7 @@ async function exportCsv() {
     const params = {
       device_id: selectedDeviceId.value,
       sensor_type: selectedSensorCode.value || undefined,
-      format: 'csv',
+      export_format: 'csv',  // 使用 export_format 避免与 DRF 的 format 参数冲突
     }
     if (timeRange.value?.length === 2) {
       params.start_time = toIsoString(timeRange.value[0])

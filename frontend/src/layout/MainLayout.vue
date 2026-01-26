@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Monitor, DataLine, Bell, Setting, SwitchButton, Fold, Expand, User } from '@element-plus/icons-vue'
+import { Monitor, DataLine, Bell, Setting, Fold, Expand, User, UserFilled, TrendCharts } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import ErrorBoundary from '../components/ErrorBoundary.vue'
 
@@ -28,6 +28,27 @@ const handleCommand = async (command) => {
 const toggleSidebar = () => {
   isCollapse.value = !isCollapse.value
 }
+
+// 根据用户角色显示不同的菜单
+const menuItems = computed(() => {
+  const items = [
+    { path: '/dashboard', icon: Monitor, title: '仪表盘' },
+    { path: '/devices', icon: Setting, title: '设备管理' },
+    { path: '/data/realtime', icon: DataLine, title: '实时监控' },
+    { path: '/alarms', icon: Bell, title: '告警中心' },
+  ]
+
+  // 所有用户都可以访问数据报表
+  items.push({ path: '/reports', icon: TrendCharts, title: '数据报表' })
+
+  // 仅管理员可见的菜单
+  if (auth.role === 'admin') {
+    items.push({ path: '/users', icon: UserFilled, title: '用户管理' })
+    items.push({ path: '/settings', icon: Setting, title: '系统设置' })
+  }
+
+  return items
+})
 </script>
 
 <template>
@@ -47,24 +68,9 @@ const toggleSidebar = () => {
         active-text-color="#409EFF"
         router
       >
-        <el-menu-item index="/dashboard">
-          <el-icon><Monitor /></el-icon>
-          <template #title>仪表盘</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/devices">
-          <el-icon><Setting /></el-icon>
-          <template #title>设备管理</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/monitoring">
-          <el-icon><DataLine /></el-icon>
-          <template #title>实时监控</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/alarms">
-          <el-icon><Bell /></el-icon>
-          <template #title>告警中心</template>
+        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
+          <el-icon><component :is="item.icon" /></el-icon>
+          <template #title>{{ item.title }}</template>
         </el-menu-item>
       </el-menu>
     </el-aside>
