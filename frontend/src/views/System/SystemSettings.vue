@@ -11,7 +11,7 @@ const loading = ref(false)
 
 // 通用设置
 const generalSettings = reactive({
-  systemName: '物联网监测系统',
+  systemName: '舆情分析系统',
   timezone: 'Asia/Shanghai',
   language: 'zh-CN',
   dataRetentionDays: 90,
@@ -32,8 +32,8 @@ const notificationSettings = reactive({
 
 // 数据保留策略
 const retentionSettings = reactive({
-  sensorDataRetention: 90,
-  alarmDataRetention: 365,
+  postDataRetention: 90,
+  alertDataRetention: 365,
   logDataRetention: 30,
   autoCleanupEnabled: true,
   cleanupTime: '02:00',
@@ -42,14 +42,14 @@ const retentionSettings = reactive({
 
 // 系统信息
 const systemInfo = ref({
-  version: 'v2.3.5',
-  buildTime: '2024-01-20 10:30:00',
+  version: 'v1.0.0',
+  buildTime: '2025-01-29 10:30:00',
   djangoVersion: '4.2.0',
   pythonVersion: '3.11.0',
   database: 'MySQL 8.0',
   redis: 'Connected',
-  mqtt: 'Connected',
-  lastBackup: '2024-01-20 03:00:00',
+  celery: 'Running',
+  lastBackup: '2025-01-29 03:00:00',
 })
 
 async function loadSettings() {
@@ -194,7 +194,7 @@ onMounted(loadSettings)
                   :max="365"
                   :step="1"
                 />
-                <span class="form-tip">传感器数据保留天数，超过此天数的数据将被归档</span>
+                <span class="form-tip">舆情数据保留天数，超过此天数的数据将被归档</span>
               </el-form-item>
 
               <el-form-item label="最大上传大小">
@@ -298,18 +298,18 @@ onMounted(loadSettings)
             <el-form label-width="160px" style="max-width: 600px">
               <div class="setting-section">
                 <h4>数据保留策略</h4>
-                <el-form-item label="传感器数据保留">
+                <el-form-item label="帖子数据保留">
                   <el-input-number
-                    v-model="retentionSettings.sensorDataRetention"
+                    v-model="retentionSettings.postDataRetention"
                     :min="7"
                     :max="365"
                   />
                   <span class="form-tip">天</span>
                 </el-form-item>
 
-                <el-form-item label="告警数据保留">
+                <el-form-item label="预警数据保留">
                   <el-input-number
-                    v-model="retentionSettings.alarmDataRetention"
+                    v-model="retentionSettings.alertDataRetention"
                     :min="30"
                     :max="1095"
                   />
@@ -404,8 +404,8 @@ onMounted(loadSettings)
               <el-descriptions-item label="Redis">
                 <el-tag type="success">{{ systemInfo.redis }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="MQTT服务">
-                <el-tag type="success">{{ systemInfo.mqtt }}</el-tag>
+              <el-descriptions-item label="Celery任务">
+                <el-tag type="success">{{ systemInfo.celery }}</el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="最后备份">
                 {{ systemInfo.lastBackup }}
@@ -419,20 +419,20 @@ onMounted(loadSettings)
               <el-row :gutter="20">
                 <el-col :span="6">
                   <div class="stat-box">
-                    <div class="stat-value">10</div>
-                    <div class="stat-label">设备数量</div>
+                    <div class="stat-value">25</div>
+                    <div class="stat-label">监测话题</div>
                   </div>
                 </el-col>
                 <el-col :span="6">
                   <div class="stat-box">
-                    <div class="stat-value">8</div>
-                    <div class="stat-label">传感器类型</div>
+                    <div class="stat-value">12K</div>
+                    <div class="stat-label">帖子数量</div>
                   </div>
                 </el-col>
                 <el-col :span="6">
                   <div class="stat-box">
-                    <div class="stat-value">156K</div>
-                    <div class="stat-label">数据点</div>
+                    <div class="stat-value">89</div>
+                    <div class="stat-label">预警规则</div>
                   </div>
                 </el-col>
                 <el-col :span="6">
@@ -448,7 +448,7 @@ onMounted(loadSettings)
 
             <div class="license-info">
               <h4>许可证信息</h4>
-              <p>版权所有 © 2024 物联网监测系统</p>
+              <p>版权所有 © 2025 舆情分析系统</p>
               <p>本软件采用 MIT 许可证</p>
               <el-link type="primary" href="https://github.com" target="_blank">
                 <el-icon><Link /></el-icon>

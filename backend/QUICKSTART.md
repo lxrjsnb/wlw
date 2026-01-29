@@ -20,9 +20,10 @@ CREATE DATABASE IF NOT EXISTS wlw CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 ```bash
 # 生成迁移文件
 python manage.py makemigrations users
-python manage.py makemigrations devices
-python manage.py makemigrations sensors
-python manage.py makemigrations alarms
+python manage.py makemigrations topics
+python manage.py makemigrations posts
+python manage.py makemigrations analysis
+python manage.py makemigrations alerts
 
 # 执行迁移
 python manage.py migrate
@@ -39,156 +40,115 @@ python manage.py createsuperuser
 - 邮箱：admin@example.com
 - 密码：admin123
 
-## 5. 初始化传感器类型数据
+## 5. 初始化数据
 
 创建文件 `init_data.py`：
 
 ```python
-from apps.devices.models import SensorType
+from apps.topics.models import Topic, Platform
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-# 创建传感器类型
-sensor_types = [
+# 创建平台数据
+platforms = [
     {
-        'name': '温度',
-        'code': 'temperature',
-        'unit': '°C',
-        'category': 'environment',
-        'icon': 'Sunny',
-        'color': '#ff6b6b',
-        'min_value': -40,
-        'max_value': 80,
-        'precision': 1,
-        'sort_order': 1
+        'name': '微博',
+        'code': 'weibo',
+        'icon': 'ChatLineRound',
+        'color': '#FF8200',
+        'enabled': True
     },
     {
-        'name': '湿度',
-        'code': 'humidity',
-        'unit': '%',
-        'category': 'environment',
-        'icon': 'Cloudy',
-        'color': '#4ecdc4',
-        'min_value': 0,
-        'max_value': 100,
-        'precision': 1,
-        'sort_order': 2
+        'name': '知乎',
+        'code': 'zhihu',
+        'icon': 'ChatDotRound',
+        'color': '#0084FF',
+        'enabled': True
     },
     {
-        'name': 'PM2.5',
-        'code': 'pm25',
-        'unit': 'μg/m³',
-        'category': 'air_quality',
-        'icon': 'WindPower',
-        'color': '#95e1d3',
-        'min_value': 0,
-        'max_value': 500,
-        'precision': 0,
-        'sort_order': 3
+        'name': '抖音',
+        'code': 'douyin',
+        'icon': 'VideoPlay',
+        'color': '#000000',
+        'enabled': True
     },
-    {
-        'name': 'CO2浓度',
-        'code': 'co2',
-        'unit': 'ppm',
-        'category': 'air_quality',
-        'icon': 'Cpu',
-        'color': '#dda0dd',
-        'min_value': 0,
-        'max_value': 5000,
-        'precision': 0,
-        'sort_order': 4
-    },
-    {
-        'name': '光照强度',
-        'code': 'light',
-        'unit': 'lux',
-        'category': 'environment',
-        'icon': 'Sunny',
-        'color': '#feca57',
-        'min_value': 0,
-        'max_value': 100000,
-        'precision': 0,
-        'sort_order': 5
-    }
 ]
 
-for sensor_type_data in sensor_types:
-    SensorType.objects.get_or_create(
-        code=sensor_type_data['code'],
-        defaults=sensor_type_data
+for platform_data in platforms:
+    Platform.objects.get_or_create(
+        code=platform_data['code'],
+        defaults=platform_data
     )
 
-print('传感器类型初始化完成')
+print('初始化完成！')
 ```
 
 运行初始化脚本：
-
 ```bash
-python init_data.py
+python manage.py shell < init_data.py
 ```
 
 ## 6. 启动开发服务器
 
 ```bash
+# 启动Django服务
 python manage.py runserver
+
+# 启动Celery worker（新终端）
+celery -A iot_system worker -l info
+
+# 启动Celery beat（新终端，用于定时任务）
+celery -A iot_system beat -l info
+
+# 启动WebSocket服务（新终端，如果使用daphne）
+daphne -b 0.0.0.0 -p 8001 iot_system.asgi:application
 ```
 
-服务器将在 `http://localhost:8000` 启动
+## 7. 访问系统
 
-## 7. 访问应用
+- 前端开发服务器：http://localhost:5173
+- 后端API：http://localhost:8000
+- API文档：http://localhost:8000/swagger/
+- 管理后台：http://localhost:8000/admin/
 
-### 后端API文档
-- Swagger UI: http://localhost:8000/swagger/
-- ReDoc: http://localhost:8000/redoc/
-
-### 管理后台
-- 地址: http://localhost:8000/admin/
-- 使用之前创建的超级用户登录
+默认账号：
+- 用户名：admin
+- 密码：admin123
 
 ## 8. 测试API
 
-使用curl或Postman测试登录接口：
-
 ```bash
+# 获取JWT Token
 curl -X POST http://localhost:8000/api/v1/auth/login/ \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
+  -d '{"username": "admin", "password": "admin123"}'
+
+# 创建话题（需要替换YOUR_TOKEN）
+curl -X POST http://localhost:8000/api/v1/topics/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "测试话题",
+    "keywords": ["测试", "舆情"],
+    "platforms": ["weibo", "zhihu"]
+  }'
 ```
-
-## 9. 启动前端（可选）
-
-```bash
-cd ../frontend
-npm install
-npm run dev
-```
-
-前端将在 `http://localhost:5173` 启动
 
 ## 常见问题
 
-### 问题1：数据库连接失败
-
-确保MySQL服务正在运行，并且 `backend/.env` 中的数据库配置正确。
-
-### 问题2：迁移报错
-
-尝试删除迁移文件重新生成：
-
+### Redis 连接失败
+确保Redis服务已启动：
 ```bash
-# 删除迁移文件（保留 __init__.py）
-find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+# Windows
+redis-server
 
-# 重新生成迁移
-python manage.py makemigrations
-python manage.py migrate
+# Linux/Mac
+sudo systemctl start redis
 ```
 
-### 问题3：MySQL编码错误
+### Celery 任务不执行
+检查Celery worker是否正常运行，查看日志输出。
 
-确保数据库使用 utf8mb4 编码：
-
-```sql
-ALTER DATABASE wlw CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+### WebSocket 连接失败
+确保使用了正确的协议（ws://或wss://）和端口。

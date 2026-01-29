@@ -1,6 +1,6 @@
 """
-IoT系统主路由配置
-Main URL configuration for IoT System
+舆情分析系统主路由配置
+Main URL configuration for Social Media Sentiment Analysis System
 """
 from django.contrib import admin
 from django.urls import path, include
@@ -13,15 +13,16 @@ from drf_yasg import openapi
 # Swagger API文档配置
 schema_view = get_schema_view(
     openapi.Info(
-        title="IoT Environment Monitoring System API",
+        title="Social Media Sentiment Analysis System API",
         default_version='v1',
-        description="物联网环境监测系统API文档\n\n"
+        description="社交媒体舆情分析系统API文档\n\n"
                    "核心功能：\n"
-                   "- 设备管理\n"
-                   "- 传感器数据采集\n"
-                   "- 实时监控\n"
-                   "- 告警管理\n"
-                   "- 历史数据查询",
+                   "- 话题管理\n"
+                   "- 帖子采集与分析\n"
+                   "- 情感分析\n"
+                   "- 预警系统\n"
+                   "- 趋势分析\n"
+                   "- 数据报表",
         terms_of_service="https://www.example.com/terms/",
         contact=openapi.Contact(email="admin@example.com"),
         license=openapi.License(name="MIT License"),
@@ -41,9 +42,10 @@ urlpatterns = [
 
     # API路由
     path('api/v1/auth/', include('apps.users.urls')),
-    path('api/v1/devices/', include('apps.devices.urls')),
-    path('api/v1/sensors/', include('apps.sensors.urls')),
-    path('api/v1/alarms/', include('apps.alarms.urls')),
+    path('api/v1/topics/', include('apps.topics.urls')),
+    path('api/v1/posts/', include('apps.posts.urls')),
+    path('api/v1/alerts/', include('apps.alerts.urls')),
+    path('api/v1/analysis/', include('apps.analysis.urls')),
 ]
 
 # 开发环境下提供媒体文件服务

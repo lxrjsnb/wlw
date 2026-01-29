@@ -1,6 +1,6 @@
 """
-Django settings for IoT Environment Monitoring System
-物联网环境监测系统 - Django项目配置
+Django settings for Social Media Sentiment Analysis System
+社交媒体舆情分析系统 - Django项目配置
 """
 
 import os
@@ -56,9 +56,10 @@ INSTALLED_APPS = [
     # 项目应用
     'core',
     'apps.users',
-    'apps.devices',
-    'apps.sensors',
-    'apps.alarms',
+    'apps.topics',
+    'apps.posts',
+    'apps.alerts',
+    'apps.analysis',
 ]
 
 # 中间件配置
@@ -364,28 +365,19 @@ LOGGING = {
     },
 }
 
-# MQTT配置
-MQTT_BROKER = {
-    'HOST': os.environ.get('MQTT_HOST', 'localhost'),
-    'PORT': int(os.environ.get('MQTT_PORT', 1883)),
-    'USERNAME': os.environ.get('MQTT_USERNAME', ''),
-    'PASSWORD': os.environ.get('MQTT_PASSWORD', ''),
-    'KEEPALIVE': 60,
-}
-
 # WebSocket配置
 WEBSOCKET_HOST = os.environ.get('WEBSOCKET_HOST', '0.0.0.0')
 WEBSOCKET_PORT = int(os.environ.get('WEBSOCKET_PORT', 8001))
 
-# 告警配置
-ALARM_CONFIG = {
-    # 告警通知方式
+# 预警配置
+ALERT_CONFIG = {
+    # 预警通知方式
     'NOTIFICATION_METHODS': ['websocket', 'email', 'sms'],
 
-    # 告警去重时间窗口（秒）
-    'DEDUPTION_WINDOW': 300,
+    # 预警去重时间窗口（秒）
+    'DEDUPLICATION_WINDOW': 300,
 
-    # 告警恢复通知
+    # 预警恢复通知
     'ENABLE_RECOVERY_NOTIFICATION': True,
 }
 
