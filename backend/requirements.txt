@@ -38,6 +38,14 @@ openpyxl==3.1.2
 jieba==0.42.1
 snownlp==0.12.3
 
+# Advanced Analytics & Algorithms
+# ------------------------------------------------------------
+networkx==3.2.1              # 图分析（传播路径、KOL中心性）
+scikit-learn==1.4.0          # 机器学习
+statsmodels==0.14.1          # 时间序列分析（STL分解）
+ruptures==1.1.10             # 变点检测
+numpy==1.26.3                # 科学计算基础库
+
 # API Documentation
 # ------------------------------------------------------------
 drf-yasg==1.21.7

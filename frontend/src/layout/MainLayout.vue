@@ -83,12 +83,12 @@ const menuItems = computed(() => {
         text-color="#475569"
         active-text-color="#ffffff"
         router
-        @select="handleMenuSelect"
       >
         <template v-for="item in menuItems" :key="item.path || item.title">
           <!-- 分组标题 -->
-          <el-menu-item-group v-if="item.type === 'group' && !isCollapse" :title="item.title">
-          </el-menu-item-group>
+          <div v-if="item.type === 'group' && !isCollapse" class="menu-group-title">
+            {{ item.title }}
+          </div>
           <!-- 普通菜单项 -->
           <el-menu-item v-else-if="item.path" :index="item.path">
             <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
@@ -153,6 +153,8 @@ const menuItems = computed(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 10;
 }
 
 .logo-container {
@@ -182,6 +184,15 @@ const menuItems = computed(() => {
 .el-menu-vertical {
   border-right: none;
   flex: 1;
+}
+
+.menu-group-title {
+  padding: 12px 20px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .header {
