@@ -25,6 +25,43 @@ const hotnessLevels = {
   frozen: { label: '冰点', color: '#C0C4CC', min: 0 },
 }
 
+// 初始化时直接生成模拟数据
+const initializeMockData = () => {
+  const days = timeRange.value === '7d' ? 7 : 30
+
+  hotnessData.value = {
+    realtime: Array.from({ length: 20 }, (_, i) => ({
+      id: i + 1,
+      title: `热门帖子 ${i + 1}`,
+      author: `用户${i + 1}`,
+      hotness: Math.floor(Math.random() * 100),
+      level: getHotnessLevel(Math.floor(Math.random() * 100)),
+      likes: Math.floor(Math.random() * 10000),
+      comments: Math.floor(Math.random() * 1000),
+      shares: Math.floor(Math.random() * 5000),
+    })),
+    trend: Array.from({ length: days }, (_, i) => ({
+      date: `1/${i + 1}`,
+      avgHotness: Math.floor(Math.random() * 60 + 40),
+      postCount: Math.floor(Math.random() * 500 + 100),
+    })),
+    distribution: {
+      explosive: Math.floor(Math.random() * 10),
+      hot: Math.floor(Math.random() * 20) + 10,
+      warm: Math.floor(Math.random() * 30) + 20,
+      cold: Math.floor(Math.random() * 40) + 30,
+    },
+    fastest: Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      title: `快速上升帖子 ${i + 1}`,
+      change: Math.random() * 50 + 10,
+    })),
+  }
+}
+
+// 立即初始化数据
+initializeMockData()
+
 async function loadTopics() {
   try {
     const res = await getTopics({ page: 1, page_size: 100 })
@@ -40,6 +77,9 @@ async function loadTopics() {
 async function loadHotnessData() {
   loading.value = true
   try {
+    // 模拟数据生成延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     // TODO: 调用真实API
     // const res = await getRealtimeHotness({ topic: selectedTopic.value })
     // 模拟数据
@@ -64,11 +104,18 @@ async function loadHotnessData() {
       fastest: Array.from({ length: 10 }, (_, i) => ({
         id: i + 1,
         title: `快速上升帖子 ${i + 1}`,
-        change: (Math.random() * 50 + 10).toFixed(1),
+        change: Math.random() * 50 + 10,
       })),
     }
   } catch (e) {
     console.error('加载热度数据失败:', e)
+    // 确保数据有默认值
+    hotnessData.value = {
+      realtime: [],
+      trend: [],
+      distribution: { explosive: 0, hot: 0, warm: 0, cold: 0 },
+      fastest: [],
+    }
   } finally {
     loading.value = false
   }
@@ -91,38 +138,41 @@ function generateTrendData() {
   }))
 }
 
-const hotnessTrendOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  legend: { bottom: 0, left: 'center' },
-  grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
-  xAxis: {
-    type: 'category',
-    data: hotnessData.value.trend.map(d => d.date),
-  },
-  yAxis: [
-    { type: 'value', name: '平均热度', position: 'left' },
-    { type: 'value', name: '帖子数', position: 'right' }
-  ],
-  series: [
-    {
-      name: '平均热度',
-      type: 'line',
-      data: hotnessData.value.trend.map(d => d.avgHotness),
-      smooth: true,
-      itemStyle: { color: '#E6A23C' },
+const hotnessTrendOption = computed(() => {
+  const trend = hotnessData.value?.trend || []
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { bottom: 0, left: 'center' },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: trend.map(d => d.date),
     },
-    {
-      name: '帖子数',
-      type: 'bar',
-      yAxisIndex: 1,
-      data: hotnessData.value.trend.map(d => d.postCount),
-      itemStyle: { color: '#409EFF' },
-    },
-  ],
-}))
+    yAxis: [
+      { type: 'value', name: '平均热度', position: 'left' },
+      { type: 'value', name: '帖子数', position: 'right' }
+    ],
+    series: [
+      {
+        name: '平均热度',
+        type: 'line',
+        data: trend.map(d => d.avgHotness),
+        smooth: true,
+        itemStyle: { color: '#E6A23C' },
+      },
+      {
+        name: '帖子数',
+        type: 'bar',
+        yAxisIndex: 1,
+        data: trend.map(d => d.postCount),
+        itemStyle: { color: '#409EFF' },
+      },
+    ],
+  }
+})
 
 const distributionOption = computed(() => {
-  const dist = hotnessData.value.distribution
+  const dist = hotnessData.value?.distribution || { explosive: 0, hot: 0, warm: 0, cold: 0 }
   return {
     tooltip: { trigger: 'item' },
     legend: { bottom: 0, left: 'center' },
@@ -235,7 +285,7 @@ onMounted(async () => {
               <el-table-column prop="title" label="帖子" min-width="150" show-overflow-tooltip />
               <el-table-column label="涨幅" width="80" align="right">
                 <template #default="{ row }">
-                  <span style="color: #F56C6C;">+{{ row.change }}%</span>
+                  <span style="color: #F56C6C;">+{{ row.change?.toFixed(1) || 0 }}%</span>
                 </template>
               </el-table-column>
             </el-table>

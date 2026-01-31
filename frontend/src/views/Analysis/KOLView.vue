@@ -27,6 +27,38 @@ const kolTypes = {
   comprehensive: { label: '综合影响力者', color: '#67C23A' },
 }
 
+// 初始化时直接生成模拟数据
+const initializeMockData = () => {
+  kolData.value = {
+    ranking: Array.from({ length: 20 }, (_, i) => {
+      const type = ['initiator', 'spreader', 'guide', 'comprehensive'][i % 4]
+      return {
+        id: i + 1,
+        name: `KOL用户${i + 1}`,
+        avatar: '',
+        kolScore: Math.random() * 40 + 60,
+        kolType: type,
+        contentInfluence: Math.random() * 100,
+        networkInfluence: Math.random() * 100,
+        topicLeadership: Math.random() * 100,
+        sentimentInfluence: Math.random() * 100,
+        followers: Math.floor(Math.random() * 1000000) + 10000,
+        posts: Math.floor(Math.random() * 100) + 10,
+      }
+    }),
+    stats: {
+      total: 156,
+      initiators: 35,
+      spreaders: 68,
+      guides: 32,
+      comprehensive: 21,
+    },
+  }
+}
+
+// 立即初始化数据
+initializeMockData()
+
 async function loadTopics() {
   try {
     const res = await getTopics({ page: 1, page_size: 100 })
@@ -42,6 +74,9 @@ async function loadTopics() {
 async function loadKOLData() {
   loading.value = true
   try {
+    // 模拟数据生成延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     // TODO: 调用真实API
     // const res = await getKOLRanking({ topic: selectedTopic.value })
     // 模拟数据
@@ -52,12 +87,12 @@ async function loadKOLData() {
           id: i + 1,
           name: `KOL用户${i + 1}`,
           avatar: '',
-          kolScore: (Math.random() * 40 + 60).toFixed(1),
+          kolScore: Math.random() * 40 + 60,
           kolType: type,
-          contentInfluence: (Math.random() * 100).toFixed(1),
-          networkInfluence: (Math.random() * 100).toFixed(1),
-          topicLeadership: (Math.random() * 100).toFixed(1),
-          sentimentInfluence: (Math.random() * 100).toFixed(1),
+          contentInfluence: Math.random() * 100,
+          networkInfluence: Math.random() * 100,
+          topicLeadership: Math.random() * 100,
+          sentimentInfluence: Math.random() * 100,
           followers: Math.floor(Math.random() * 1000000) + 10000,
           posts: Math.floor(Math.random() * 100) + 10,
         }
@@ -72,32 +107,46 @@ async function loadKOLData() {
     }
   } catch (e) {
     console.error('加载KOL数据失败:', e)
+    // 确保数据有默认值
+    kolData.value = {
+      ranking: [],
+      stats: {
+        total: 0,
+        initiators: 0,
+        spreaders: 0,
+        guides: 0,
+        comprehensive: 0,
+      },
+    }
   } finally {
     loading.value = false
   }
 }
 
 const sortedRanking = computed(() => {
-  return [...kolData.value.ranking].sort((a, b) => {
+  return [...(kolData.value?.ranking || [])].sort((a, b) => {
     return parseFloat(b[sortBy.value]) - parseFloat(a[sortBy.value])
   })
 })
 
-const typeOption = computed(() => ({
-  tooltip: { trigger: 'item' },
-  legend: { bottom: 0, left: 'center' },
-  color: Object.values(kolTypes).map(t => t.color),
-  series: [{
-    type: 'pie',
-    radius: ['40%', '65%'],
-    data: [
-      { value: kolData.value.stats.initiators, name: kolTypes.initiator.label },
-      { value: kolData.value.stats.spreaders, name: kolTypes.spreader.label },
-      { value: kolData.value.stats.guides, name: kolTypes.guide.label },
-      { value: kolData.value.stats.comprehensive, name: kolTypes.comprehensive.label },
-    ],
-  }]
-}))
+const typeOption = computed(() => {
+  const stats = kolData.value?.stats || { initiators: 0, spreaders: 0, guides: 0, comprehensive: 0 }
+  return {
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0, left: 'center' },
+    color: Object.values(kolTypes).map(t => t.color),
+    series: [{
+      type: 'pie',
+      radius: ['40%', '65%'],
+      data: [
+        { value: stats.initiators, name: kolTypes.initiator.label },
+        { value: stats.spreaders, name: kolTypes.spreader.label },
+        { value: stats.guides, name: kolTypes.guide.label },
+        { value: stats.comprehensive, name: kolTypes.comprehensive.label },
+      ],
+    }]
+  }
+})
 
 const radarOption = computed(() => {
   const topKol = sortedRanking.value[0]

@@ -1,9 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { getKeywordCloud, getSentimentTimeline } from '../../api/analysis'
-import { getActiveTopics } from '../../api/topics'
+import { getTopics } from '../../api/topics'
 
 const loading = ref(false)
 const topics = ref([])
@@ -17,32 +15,67 @@ const sentimentTimeline = ref({
   negative: []
 })
 
-async function load() {
-  loading.value = true
+async function loadTopics() {
   try {
-    const params = selectedTopic.value ? { topic_id: selectedTopic.value } : {}
-
-    // 加载关键词云
-    const keywords = await getKeywordCloud(params)
-    keywordData.value = keywords.keywords || []
-
-    // 加载情感时间线
-    const timeline = await getSentimentTimeline(params)
-    sentimentTimeline.value = timeline
-
+    const res = await getTopics({ page: 1, page_size: 100 })
+    topics.value = res?.results || res?.items || []
+    if (topics.value.length && !selectedTopic.value) {
+      selectedTopic.value = topics.value[0].id
+    }
   } catch (e) {
-    ElMessage.error('加载失败')
-  } finally {
-    loading.value = false
+    console.error('加载话题失败:', e)
   }
 }
 
-async function loadTopics() {
+async function load() {
+  loading.value = true
   try {
-    const data = await getActiveTopics()
-    topics.value = data.results || data
-  } catch (e) {
-    console.error(e)
+    // 模拟数据生成
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // 生成关键词云数据
+    const keywords = [
+      { name: '舆情', value: 95 },
+      { name: '社交媒体', value: 88 },
+      { name: '监测', value: 76 },
+      { name: '分析', value: 72 },
+      { name: '预警', value: 68 },
+      { name: '情感', value: 65 },
+      { name: '趋势', value: 58 },
+      { name: '传播', value: 54 },
+      { name: '影响力', value: 48 },
+      { name: '平台', value: 45 },
+      { name: '用户', value: 42 },
+      { name: '内容', value: 38 },
+      { name: '互动', value: 35 },
+      { name: '话题', value: 32 },
+      { name: '热度', value: 28 }
+    ]
+    keywordData.value = keywords
+
+    // 生成情感时间线数据（过去7天）
+    const dates = []
+    const positive = []
+    const neutral = []
+    const negative = []
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      dates.push(`${date.getMonth() + 1}/${date.getDate()}`)
+      positive.push(Math.floor(Math.random() * 200) + 50)
+      neutral.push(Math.floor(Math.random() * 150) + 30)
+      negative.push(Math.floor(Math.random() * 100) + 20)
+    }
+
+    sentimentTimeline.value = {
+      dates,
+      positive,
+      neutral,
+      negative
+    }
+  } finally {
+    loading.value = false
   }
 }
 

@@ -31,6 +31,43 @@ const eventTypes = {
   multi: '综合异常',
 }
 
+// 初始化时直接生成模拟数据
+const initializeMockData = () => {
+  emergencyData.value = {
+    active: Array.from({ length: 3 }, (_, i) => ({
+      id: i + 1,
+      topic: `测试话题${i + 1}`,
+      eventType: ['volume', 'sentiment', 'speed', 'multi'][i % 4],
+      severity: ['level_1', 'level_2', 'level_3'][i % 3],
+      detectedAt: new Date().toLocaleString(),
+      status: 'active',
+      metrics: {
+        postCount: Math.floor(Math.random() * 1000) + 500,
+        sentimentChange: Math.random() * 30 + 10,
+        hotness: Math.floor(Math.random() * 50) + 50,
+      },
+      description: '检测到异常的帖子数量快速增长，需要密切关注。',
+    })),
+    history: Array.from({ length: 5 }, (_, i) => ({
+      id: i + 10,
+      topic: `历史事件${i + 1}`,
+      eventType: 'volume',
+      severity: 'level_2',
+      detectedAt: new Date(Date.now() - (i + 1) * 3600000).toLocaleString(),
+      status: ['resolved', 'false_positive'][i % 2],
+    })),
+    stats: {
+      total: 23,
+      active: 3,
+      resolved: 18,
+      falsePositive: 2,
+    },
+  }
+}
+
+// 立即初始化数据
+initializeMockData()
+
 async function loadTopics() {
   try {
     const res = await getTopics({ page: 1, page_size: 100 })
@@ -46,6 +83,9 @@ async function loadTopics() {
 async function loadEmergencyData() {
   loading.value = true
   try {
+    // 模拟数据生成延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     // TODO: 调用真实API
     // const res = await detectEmergency({ topic: selectedTopic.value })
     // 模拟数据
@@ -59,7 +99,7 @@ async function loadEmergencyData() {
         status: 'active',
         metrics: {
           postCount: Math.floor(Math.random() * 1000) + 500,
-          sentimentChange: (Math.random() * 30 + 10).toFixed(1),
+          sentimentChange: Math.random() * 30 + 10,
           hotness: Math.floor(Math.random() * 50) + 50,
         },
       })),
@@ -80,6 +120,17 @@ async function loadEmergencyData() {
     }
   } catch (e) {
     console.error('加载突发事件数据失败:', e)
+    // 确保数据有默认值
+    emergencyData.value = {
+      active: [],
+      history: [],
+      stats: {
+        total: 0,
+        active: 0,
+        resolved: 0,
+        falsePositive: 0,
+      },
+    }
   } finally {
     loading.value = false
   }
@@ -176,9 +227,9 @@ onMounted(async () => {
         <el-col :span="24">
           <el-card shadow="hover">
             <template #header>
-              <span>活跃突发事件 ({{ emergencyData.value.active.length }})</span>
+              <span>活跃突发事件 ({{ emergencyData.value?.active?.length || 0 }})</span>
             </template>
-            <el-table :data="emergencyData.value.active" size="small" row-class-name="emergency-row">
+            <el-table :data="emergencyData.value?.active || []" size="small" row-class-name="emergency-row">
               <el-table-column label="级别" width="80">
                 <template #default="{ row }">
                   <el-tag :type="row.severity === 'level_1' ? 'danger' : row.severity === 'level_2' ? 'warning' : 'info'" size="large">
@@ -199,7 +250,7 @@ onMounted(async () => {
                       帖子数: {{ row.metrics.postCount }}
                     </el-tag>
                     <el-tag size="small" type="warning" v-if="row.metrics.sentimentChange">
-                      情感变化: +{{ row.metrics.sentimentChange }}%
+                      情感变化: +{{ row.metrics.sentimentChange?.toFixed(1) || 0 }}%
                     </el-tag>
                     <el-tag size="small" type="info" v-if="row.metrics.hotness">
                       热度: {{ row.metrics.hotness }}
@@ -224,7 +275,7 @@ onMounted(async () => {
       <el-row :gutter="20" class="mt-20" v-show="!loading">
         <el-col :span="24">
           <el-card shadow="hover" header="历史事件">
-            <el-table :data="emergencyData.value.history" size="small">
+            <el-table :data="emergencyData.value?.history || []" size="small">
               <el-table-column label="级别" width="80">
                 <template #default="{ row }">
                   <el-tag :type="row.severity === 'level_1' ? 'danger' : row.severity === 'level_2' ? 'warning' : 'info'">

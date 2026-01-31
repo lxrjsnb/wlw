@@ -1,11 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
-import { getTrendAnalysis, getPlatformCompare, getInfluenceRanking } from '../../api/analysis'
-import { getActiveTopics } from '../../api/topics'
+import { getTopics } from '../../api/topics'
 import VChart from 'vue-echarts'
-import * as echarts from 'echarts'
 
 const loading = ref(false)
 const topics = ref([])
@@ -30,93 +27,186 @@ const rankingData = ref({
   top_authors: []
 })
 
+// 初始化时直接生成模拟数据
+const initializeMockData = () => {
+  // 生成过去7天的日期
+  const dates = []
+  const postCounts = []
+  const sentimentScores = []
+  const influenceScores = []
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date()
+    date.setDate(date.getDate() - i)
+    dates.push(`${date.getMonth() + 1}/${date.getDate()}`)
+    postCounts.push(Math.floor(Math.random() * 500) + 100)
+    sentimentScores.push(Math.random() * 2 - 1)
+    influenceScores.push(Math.random() * 100)
+  }
+
+  trendData.value = {
+    dates,
+    post_counts: postCounts,
+    sentiment_scores: sentimentScores,
+    influence_scores: influenceScores
+  }
+
+  platformData.value = {
+    platforms: ['微博', '微信', '抖音', '知乎', 'B站'],
+    post_counts: [Math.floor(Math.random() * 1000) + 200, Math.floor(Math.random() * 500) + 100, Math.floor(Math.random() * 800) + 150, Math.floor(Math.random() * 300) + 50, Math.floor(Math.random() * 400) + 80],
+    sentiment_scores: [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()],
+    engagement_rates: [Math.random() * 10 + 2, Math.random() * 5 + 1, Math.random() * 15 + 3, Math.random() * 8 + 2, Math.random() * 12 + 2]
+  }
+
+  rankingData.value = {
+    top_posts: Array.from({ length: 10 }, (_, i) => ({
+      content: `这是第 ${i + 1} 条热门帖子的内容摘要，展示了用户的观点和讨论...`,
+      author: `用户${Math.floor(Math.random() * 10000)}`,
+      influence_score: Math.random() * 100
+    })),
+    top_authors: Array.from({ length: 10 }, (_, i) => ({
+      author: `KOL作者${i + 1}`,
+      total_posts: Math.floor(Math.random() * 100) + 10,
+      avg_influence: Math.random() * 100
+    }))
+  }
+}
+
+// 立即初始化数据
+initializeMockData()
+
 // 趋势图表配置
-const trendOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  legend: { data: ['帖子数', '情感分数', '影响力'] },
-  xAxis: {
-    type: 'category',
-    data: trendData.value.dates,
-    axisLabel: { color: '#606266' }
-  },
-  yAxis: [
-    { type: 'value', name: '帖子数', position: 'left' },
-    { type: 'value', name: '分数', position: 'right' }
-  ],
-  series: [
-    {
-      name: '帖子数',
-      type: 'line',
-      data: trendData.value.post_counts,
-      smooth: true,
-      itemStyle: { color: '#409EFF' }
+const trendOption = computed(() => {
+  const dates = trendData.value?.dates || []
+  const post_counts = trendData.value?.post_counts || []
+  const sentiment_scores = trendData.value?.sentiment_scores || []
+  const influence_scores = trendData.value?.influence_scores || []
+
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['帖子数', '情感分数', '影响力'] },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLabel: { color: '#606266' }
     },
-    {
-      name: '情感分数',
-      type: 'line',
-      yAxisIndex: 1,
-      data: trendData.value.sentiment_scores,
-      smooth: true,
-      itemStyle: { color: '#67C23A' }
-    },
-    {
-      name: '影响力',
-      type: 'line',
-      yAxisIndex: 1,
-      data: trendData.value.influence_scores,
-      smooth: true,
-      itemStyle: { color: '#E6A23C' }
-    }
-  ]
-}))
+    yAxis: [
+      { type: 'value', name: '帖子数', position: 'left' },
+      { type: 'value', name: '分数', position: 'right' }
+    ],
+    series: [
+      {
+        name: '帖子数',
+        type: 'line',
+        data: post_counts,
+        smooth: true,
+        itemStyle: { color: '#409EFF' }
+      },
+      {
+        name: '情感分数',
+        type: 'line',
+        yAxisIndex: 1,
+        data: sentiment_scores,
+        smooth: true,
+        itemStyle: { color: '#67C23A' }
+      },
+      {
+        name: '影响力',
+        type: 'line',
+        yAxisIndex: 1,
+        data: influence_scores,
+        smooth: true,
+        itemStyle: { color: '#E6A23C' }
+      }
+    ]
+  }
+})
 
 // 平台对比图表配置
-const platformOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  xAxis: {
-    type: 'category',
-    data: platformData.value.platforms,
-    axisLabel: { color: '#606266' }
-  },
-  yAxis: { type: 'value', axisLabel: { color: '#606266' } },
-  series: [
-    {
-      name: '帖子数',
-      type: 'bar',
-      data: platformData.value.post_counts,
-      itemStyle: { color: '#409EFF' }
+const platformOption = computed(() => {
+  const platforms = platformData.value?.platforms || []
+  const post_counts = platformData.value?.post_counts || []
+
+  return {
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: platforms,
+      axisLabel: { color: '#606266' }
+    },
+    yAxis: { type: 'value', axisLabel: { color: '#606266' } },
+    series: [
+      {
+        name: '帖子数',
+        type: 'bar',
+        data: post_counts,
+        itemStyle: { color: '#409EFF' }
+      }
+    ]
+  }
+})
+
+async function loadTopics() {
+  try {
+    const res = await getTopics({ page: 1, page_size: 100 })
+    topics.value = res?.results || res?.items || []
+    if (topics.value.length && !selectedTopic.value) {
+      selectedTopic.value = topics.value[0].id
     }
-  ]
-}))
+  } catch (e) {
+    console.error('加载话题失败:', e)
+  }
+}
 
 async function load() {
   loading.value = true
   try {
-    const params = selectedTopic.value ? { topic_id: selectedTopic.value } : {}
+    // 模拟数据生成
+    await new Promise(resolve => setTimeout(resolve, 500))
 
-    const [trend, platform, ranking] = await Promise.all([
-      getTrendAnalysis(params),
-      getPlatformCompare(params),
-      getInfluenceRanking(params)
-    ])
+    // 生成过去7天的日期
+    const dates = []
+    const postCounts = []
+    const sentimentScores = []
+    const influenceScores = []
 
-    trendData.value = trend
-    platformData.value = platform
-    rankingData.value = ranking
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      dates.push(`${date.getMonth() + 1}/${date.getDate()}`)
+      postCounts.push(Math.floor(Math.random() * 500) + 100)
+      sentimentScores.push(Math.random() * 2 - 1)
+      influenceScores.push(Math.random() * 100)
+    }
 
-  } catch (e) {
-    ElMessage.error('加载失败')
+    trendData.value = {
+      dates,
+      post_counts: postCounts,
+      sentiment_scores: sentimentScores,
+      influence_scores: influenceScores
+    }
+
+    platformData.value = {
+      platforms: ['微博', '微信', '抖音', '知乎', 'B站'],
+      post_counts: [Math.floor(Math.random() * 1000) + 200, Math.floor(Math.random() * 500) + 100, Math.floor(Math.random() * 800) + 150, Math.floor(Math.random() * 300) + 50, Math.floor(Math.random() * 400) + 80],
+      sentiment_scores: [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()],
+      engagement_rates: [Math.random() * 10 + 2, Math.random() * 5 + 1, Math.random() * 15 + 3, Math.random() * 8 + 2, Math.random() * 12 + 2]
+    }
+
+    rankingData.value = {
+      top_posts: Array.from({ length: 10 }, (_, i) => ({
+        content: `这是第 ${i + 1} 条热门帖子的内容摘要，展示了用户的观点和讨论...`,
+        author: `用户${Math.floor(Math.random() * 10000)}`,
+        influence_score: Math.random() * 100
+      })),
+      top_authors: Array.from({ length: 10 }, (_, i) => ({
+        author: `KOL作者${i + 1}`,
+        total_posts: Math.floor(Math.random() * 100) + 10,
+        avg_influence: Math.random() * 100
+      }))
+    }
   } finally {
     loading.value = false
-  }
-}
-
-async function loadTopics() {
-  try {
-    const data = await getActiveTopics()
-    topics.value = data.results || data
-  } catch (e) {
-    console.error(e)
   }
 }
 

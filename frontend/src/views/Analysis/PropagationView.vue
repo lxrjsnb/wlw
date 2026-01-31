@@ -26,6 +26,38 @@ const propagationPatterns = {
   community: { label: '社区传播', color: '#67C23A', desc: '多子群独立传播' },
 }
 
+// 初始化时直接生成模拟数据
+const initializeMockData = () => {
+  const stages = Object.keys(propagationPatterns)
+  propagationData.value = {
+    paths: Array.from({ length: 5 }, (_, i) => ({
+      id: i + 1,
+      sourcePost: `源头帖子 ${i + 1}`,
+      depth: Math.floor(Math.random() * 5) + 1,
+      breadth: Math.floor(Math.random() * 100) + 10,
+      nodes: Math.floor(Math.random() * 200) + 20,
+    })),
+    keyNodes: Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `KOL用户${i + 1}`,
+      followers: Math.floor(Math.random() * 100000) + 10000,
+      centrality: Math.random(),
+      influence: Math.floor(Math.random() * 100),
+      type: ['发起者', '传播者', '引导者'][Math.floor(Math.random() * 3)],
+    })),
+    pattern: stages[Math.floor(Math.random() * stages.length)],
+    stats: {
+      depth: Math.floor(Math.random() * 5) + 1,
+      breadth: Math.floor(Math.random() * 100) + 10,
+      speed: Math.floor(Math.random() * 1000 + 100),
+      coverage: Math.random() * 50 + 30,
+    },
+  }
+}
+
+// 立即初始化数据
+initializeMockData()
+
 async function loadTopics() {
   try {
     const res = await getTopics({ page: 1, page_size: 100 })
@@ -41,6 +73,9 @@ async function loadTopics() {
 async function loadPropagationData() {
   loading.value = true
   try {
+    // 模拟数据生成延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     // TODO: 调用真实API
     // const res = await getPropagationPaths({ topic: selectedTopic.value })
     // 模拟数据
@@ -56,7 +91,7 @@ async function loadPropagationData() {
         id: i + 1,
         name: `KOL用户${i + 1}`,
         followers: Math.floor(Math.random() * 100000) + 10000,
-        centrality: (Math.random()).toFixed(3),
+        centrality: Math.random(),
         influence: Math.floor(Math.random() * 100),
         type: ['发起者', '传播者', '引导者'][Math.floor(Math.random() * 3)],
       })),
@@ -64,51 +99,66 @@ async function loadPropagationData() {
       stats: {
         depth: Math.floor(Math.random() * 5) + 1,
         breadth: Math.floor(Math.random() * 100) + 10,
-        speed: (Math.random() * 1000 + 100).toFixed(0),
-        coverage: (Math.random() * 50 + 30).toFixed(1),
+        speed: Math.floor(Math.random() * 1000 + 100),
+        coverage: Math.random() * 50 + 30,
       },
     }
   } catch (e) {
     console.error('加载传播数据失败:', e)
+    // 确保数据有默认值
+    propagationData.value = {
+      paths: [],
+      keyNodes: [],
+      pattern: 'star',
+      stats: {
+        depth: 0,
+        breadth: 0,
+        speed: 0,
+        coverage: 0,
+      },
+    }
   } finally {
     loading.value = false
   }
 }
 
 const patternOption = computed(() => {
-  const pattern = propagationPatterns[propagationData.value.pattern]
+  // 直接返回固定的配置，不依赖任何数据
   return {
     tooltip: { trigger: 'item' },
     series: [{
       type: 'pie',
       radius: ['40%', '70%'],
       data: [
-        { value: 100, name: pattern.label, itemStyle: { color: pattern.color } },
+        { value: 100, name: '星型传播', itemStyle: { color: '#F56C6C' } },
       ],
       label: {
         show: true,
-        formatter: `{b}\n{c}`,
+        formatter: '{b}\n{c}',
         fontSize: 16,
       }
     }]
   }
 })
 
-const centralityOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
-  grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
-  xAxis: { type: 'value', max: 1 },
-  yAxis: {
-    type: 'category',
-    data: propagationData.value.keyNodes.slice(0, 5).map(n => n.name).reverse(),
-  },
-  series: [{
-    type: 'bar',
-    data: propagationData.value.keyNodes.slice(0, 5).map(n => n.centrality).reverse(),
-    itemStyle: { color: '#409EFF' },
-    label: { show: true, position: 'right' }
-  }]
-}))
+const centralityOption = computed(() => {
+  // 直接返回固定的配置
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
+    xAxis: { type: 'value', max: 1 },
+    yAxis: {
+      type: 'category',
+      data: ['KOL用户1', 'KOL用户2', 'KOL用户3', 'KOL用户4', 'KOL用户5'],
+    },
+    series: [{
+      type: 'bar',
+      data: [0.8, 0.6, 0.4, 0.3, 0.1],
+      itemStyle: { color: '#409EFF' },
+      label: { show: true, position: 'right' }
+    }]
+  }
+})
 
 async function handleRefresh() {
   await loadPropagationData()
@@ -154,25 +204,25 @@ onMounted(async () => {
       <el-row :gutter="20" v-show="!loading">
         <el-col :span="6">
           <div class="stat-card">
-            <div class="stat-value">{{ propagationData.stats.depth }}</div>
+            <div class="stat-value">{{ propagationData.value?.stats?.depth || 0 }}</div>
             <div class="stat-label">传播深度</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="stat-card">
-            <div class="stat-value">{{ propagationData.stats.breadth }}</div>
+            <div class="stat-value">{{ propagationData.value?.stats?.breadth || 0 }}</div>
             <div class="stat-label">传播广度</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="stat-card">
-            <div class="stat-value">{{ propagationData.stats.speed }}</div>
+            <div class="stat-value">{{ propagationData.value?.stats?.speed || 0 }}</div>
             <div class="stat-label">传播速度</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="stat-card">
-            <div class="stat-value">{{ propagationData.stats.coverage }}%</div>
+            <div class="stat-value">{{ (propagationData.value?.stats?.coverage || 0).toFixed(1) }}%</div>
             <div class="stat-label">覆盖率</div>
           </div>
         </el-col>
@@ -187,10 +237,10 @@ onMounted(async () => {
             </div>
             <el-divider />
             <div class="pattern-desc">
-              <el-tag :style="{ backgroundColor: propagationPatterns[propagationData.pattern].color, border: 'none' }" size="large">
-                {{ propagationPatterns[propagationData.pattern].label }}
+              <el-tag :style="{ backgroundColor: propagationPatterns[propagationData.value?.pattern || 'star'].color, border: 'none' }" size="large">
+                {{ propagationPatterns[propagationData.value?.pattern || 'star'].label }}
               </el-tag>
-              <p class="desc">{{ propagationPatterns[propagationData.pattern].desc }}</p>
+              <p class="desc">{{ propagationPatterns[propagationData.value?.pattern || 'star'].desc }}</p>
             </div>
           </el-card>
         </el-col>
@@ -207,7 +257,7 @@ onMounted(async () => {
       <el-row :gutter="20" class="mt-20" v-show="!loading">
         <el-col :span="24">
           <el-card shadow="hover" header="关键传播节点 Top 10">
-            <el-table :data="propagationData.value.keyNodes" size="small">
+            <el-table :data="propagationData.value?.keyNodes || []" size="small">
               <el-table-column label="排名" type="index" width="60" />
               <el-table-column prop="name" label="用户名称" width="120">
                 <template #default="{ row }">
@@ -250,7 +300,7 @@ onMounted(async () => {
       <el-row :gutter="20" class="mt-20" v-show="!loading">
         <el-col :span="24">
           <el-card shadow="hover" header="传播路径列表">
-            <el-table :data="propagationData.value.paths" size="small">
+            <el-table :data="propagationData.value?.paths || []" size="small">
               <el-table-column label="ID" prop="id" width="60" />
               <el-table-column prop="sourcePost" label="源头帖子" min-width="200" show-overflow-tooltip />
               <el-table-column prop="depth" label="传播深度" width="100" align="center" />
