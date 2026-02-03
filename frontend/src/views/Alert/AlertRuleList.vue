@@ -1,31 +1,105 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { h } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
-import { getAlertRules, deleteAlertRule, enableAlertRule, disableAlertRule } from '../../api/alerts'
+import { Plus, Edit, Delete } from '@element-plus/icons-vue'
+import PaginatedList from '../../components/PaginatedList.vue'
+import { deleteAlertRule, enableAlertRule, disableAlertRule } from '../../api/alerts'
+import { useRouter } from 'vue-router'
 
-const loading = ref(false)
-const rules = ref([])
-const total = ref(0)
+const router = useRouter()
 
-const queryParams = ref({
-  page: 1,
-  page_size: 20
-})
-
-async function load() {
-  loading.value = true
-  try {
-    const data = await getAlertRules(queryParams.value)
-    rules.value = data.results || data
-    total.value = data.count || rules.value.length
-  } catch (e) {
-    ElMessage.error('加载失败')
-  } finally {
-    loading.value = false
+// 列配置
+const columns = [
+  {
+    prop: 'topic_name',
+    label: '话题',
+    width: 150
+  },
+  {
+    prop: 'rule_type_display',
+    label: '规则类型',
+    width: 120
+  },
+  {
+    prop: 'condition_display',
+    label: '条件',
+    width: 80
+  },
+  {
+    prop: 'threshold_value',
+    label: '阈值',
+    width: 100
+  },
+  {
+    prop: 'priority',
+    label: '优先级',
+    width: 80,
+    slot: 'priority'
+  },
+  {
+    prop: 'enabled',
+    label: '状态',
+    width: 80,
+    slot: 'enabled'
+  },
+  {
+    prop: 'cooldown_minutes',
+    label: '冷却(分钟)',
+    width: 100
+  },
+  {
+    prop: 'description',
+    label: '描述',
+    minWidth: 200,
+    showOverflowTooltip: true
   }
+]
+
+// 行操作按钮
+function createRowActions(row) {
+  return h('div', { class: 'row-actions' }, [
+    h(
+      'el-button',
+      {
+        icon: Edit,
+        link: true,
+        type: 'primary',
+        size: 'small',
+        onClick: () => router.push(`/alerts/rules/${row.id}/edit`)
+      },
+      () => '编辑'
+    ),
+    h(
+      'el-button',
+      {
+        icon: Delete,
+        link: true,
+        type: 'danger',
+        size: 'small',
+        onClick: () => handleDelete(row)
+      },
+      () => '删除'
+    )
+  ])
 }
 
+// 工具栏操作
+const toolbarActions = [
+  {
+    label: '新建规则',
+    type: 'primary',
+    icon: Plus,
+    handler: () => router.push('/alerts/rules/new')
+  }
+]
+
+// 获取数据的函数
+async function fetchAlertRules(params) {
+  const { getAlertRules } = await import('../../api/alerts')
+  return getAlertRules(params)
+}
+
+// 删除处理
 async function handleDelete(row) {
   try {
     await ElMessageBox.confirm('确定要删除这条规则吗？', '提示', {
@@ -33,12 +107,16 @@ async function handleDelete(row) {
     })
     await deleteAlertRule(row.id)
     ElMessage.success('删除成功')
-    load()
+    return true
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败')
+    if (e !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+    return false
   }
 }
 
+// 切换启用状态
 async function handleToggle(row) {
   try {
     if (row.enabled) {
@@ -48,17 +126,17 @@ async function handleToggle(row) {
       await enableAlertRule(row.id)
       ElMessage.success('已启用')
     }
-    load()
+    return true
   } catch (e) {
     ElMessage.error('操作失败')
+    return false
   }
 }
 
+// 获取优先级样式
 function getPriorityClass(priority) {
   return { 'priority-badge': true, [priority]: true }
 }
-
-onMounted(load)
 </script>
 
 <template>
@@ -68,54 +146,32 @@ onMounted(load)
         <h1 class="page-title">预警规则</h1>
         <p class="page-subtitle">配置和管理预警规则</p>
       </div>
-      <el-button :icon="Plus" type="primary">新建规则</el-button>
     </div>
 
     <div class="card">
-      <el-table :data="rules" v-loading="loading" stripe>
-        <el-table-column prop="topic_name" label="话题" width="150" />
-        <el-table-column prop="rule_type_display" label="规则类型" width="120" />
-        <el-table-column prop="condition_display" label="条件" width="80" />
-        <el-table-column prop="threshold_value" label="阈值" width="100" />
-        <el-table-column label="优先级" width="80">
-          <template #default="{ row }">
-            <span :class="getPriorityClass(row.priority)">
-              {{ row.priority_display }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="enabled" label="状态" width="80">
-          <template #default="{ row }">
-            <el-switch :model-value="row.enabled" @change="handleToggle(row)" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="cooldown_minutes" label="冷却(分钟)" width="100" />
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button :icon="Edit" link type="primary" size="small">编辑</el-button>
-            <el-button :icon="Delete" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <PaginatedList
+        :fetch-function="fetchAlertRules"
+        :columns="columns"
+        :row-actions="createRowActions"
+        :toolbar-actions="toolbarActions"
+      >
+        <template #priority="{ row }">
+          <span :class="getPriorityClass(row.priority)">
+            {{ row.priority_display }}
+          </span>
+        </template>
 
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="queryParams.page"
-          :page-size="queryParams.page_size"
-          :total="total"
-          layout="total, prev, pager, next"
-          @current-change="load"
-        />
-      </div>
+        <template #enabled="{ row }">
+          <el-switch :model-value="row.enabled" @change="handleToggle(row)" />
+        </template>
+      </PaginatedList>
     </div>
   </div>
 </template>
 
 <style scoped>
-.pagination-container {
+.row-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
+  gap: 4px;
 }
 </style>

@@ -51,34 +51,10 @@ const routes = [
                 meta: { title: '趋势分析', requiresAuth: true }
             },
             {
-                path: 'analysis/hotness',
-                name: 'HotnessAnalysis',
-                component: () => import('../views/Analysis/HotnessView.vue'),
-                meta: { title: '热度分析', requiresAuth: true }
-            },
-            {
-                path: 'analysis/propagation',
-                name: 'PropagationAnalysis',
-                component: () => import('../views/Analysis/PropagationView.vue'),
-                meta: { title: '传播分析', requiresAuth: true }
-            },
-            {
-                path: 'analysis/emergency',
-                name: 'EmergencyAnalysis',
-                component: () => import('../views/Analysis/EmergencyView.vue'),
-                meta: { title: '突发事件', requiresAuth: true }
-            },
-            {
-                path: 'analysis/kol',
-                name: 'KOLAnalysis',
-                component: () => import('../views/Analysis/KOLView.vue'),
-                meta: { title: 'KOL画像', requiresAuth: true }
-            },
-            {
-                path: 'analysis/evolution',
-                name: 'EvolutionAnalysis',
-                component: () => import('../views/Analysis/EvolutionView.vue'),
-                meta: { title: '舆情演化', requiresAuth: true }
+                path: 'analysis/comprehensive',
+                name: 'ComprehensiveView',
+                component: () => import('../views/Analysis/ComprehensiveView.vue'),
+                meta: { title: '综合分析', requiresAuth: true }
             },
             {
                 path: 'alerts',

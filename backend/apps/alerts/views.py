@@ -164,6 +164,14 @@ class AlertRecordViewSet(viewsets.ModelViewSet):
         serializer = AlertStatsSerializer(data)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def recent(self, request):
+        """获取最新预警记录"""
+        limit = int(request.query_params.get('limit', 10))
+        queryset = self.get_queryset().order_by('-triggered_at')[:limit]
+        serializer = AlertRecordListSerializer(queryset, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['post'])
     def batch_acknowledge(self, request):
         """批量确认预警"""

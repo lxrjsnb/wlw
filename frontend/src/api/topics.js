@@ -2,6 +2,10 @@
  * 话题相关API
  */
 import request from './http'
+import { createAPI, createStatsAPI } from './factory'
+
+// 使用工厂模式创建API (可选使用)
+export const topicsAPI = createStatsAPI('/api/v1/topics')
 
 /**
  * 获取话题列表
@@ -103,5 +107,16 @@ export function getPlatforms() {
   return request({
     url: '/api/v1/topics/platforms/',
     method: 'get'
+  })
+}
+
+/**
+ * 获取热门话题
+ */
+export function getHotTopics(params = {}) {
+  return request({
+    url: '/api/v1/topics/hot/',
+    method: 'get',
+    params
   })
 }

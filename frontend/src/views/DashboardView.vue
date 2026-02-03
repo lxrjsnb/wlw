@@ -4,55 +4,51 @@ import VChart from 'vue-echarts'
 import * as echarts from 'echarts'
 import { ChatDotRound, Document, Warning, TrendCharts, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getTopicStats, getHotTopics } from '../api/topics'
+import { getPostStats } from '../api/posts'
+import { getAlertStats, getRecentAlerts } from '../api/alerts'
 
-// 模拟数据API（后续替换为真实API）
 const loading = ref(false)
-const lastUpdateTime = ref(new Date().toLocaleString('zh-CN'))
+const lastUpdateTime = ref('')
 
-// 话题统计
+// 统计数据
 const topicStats = ref({
-  total_topics: 12,
-  active_topics: 8,
-  paused_topics: 3,
-  archived_topics: 1
+  total_topics: 0,
+  active_topics: 0,
+  paused_topics: 0,
+  archived_topics: 0
 })
 
-// 帖子统计
 const postStats = ref({
-  total_posts: 15680,
-  today_posts: 1243,
-  positive_count: 5420,
-  neutral_count: 7230,
-  negative_count: 3030,
-  avg_sentiment_score: 0.12,
-  avg_influence_score: 342.5
+  total_posts: 0,
+  today_posts: 0,
+  positive_count: 0,
+  neutral_count: 0,
+  negative_count: 0,
+  avg_sentiment_score: 0,
+  avg_influence_score: 0
 })
 
-// 预警统计
 const alertStats = ref({
-  total_rules: 15,
-  active_rules: 12,
-  pending_records: 5,
-  today_triggered: 18
+  total_rules: 0,
+  active_rules: 0,
+  pending_records: 0,
+  today_triggered: 0
 })
 
-// 热门话题
-const hotTopics = ref([
-  { id: 1, name: '人工智能发展', post_count: 4520, sentiment_score: 0.35 },
-  { id: 2, name: '新能源汽车', post_count: 3890, sentiment_score: 0.42 },
-  { id: 3, name: '教育改革', post_count: 2670, sentiment_score: -0.12 },
-  { id: 4, name: '医疗健康', post_count: 1980, sentiment_score: 0.28 },
-  { id: 5, name: '环保政策', post_count: 1420, sentiment_score: 0.51 }
-])
+// 列表数据
+const hotTopics = ref([])
+const recentAlerts = ref([])
 
-// 最新预警
-const recentAlerts = ref([
-  { id: 1, topic_name: '教育改革', rule_type: '负面率告警', status: 'pending', triggered_at: '10:30' },
-  { id: 2, topic_name: '环保政策', rule_type: '数量告警', status: 'pending', triggered_at: '09:45' },
-  { id: 3, topic_name: '人工智能发展', rule_type: '影响力告警', status: 'acknowledged', triggered_at: '08:20' },
-  { id: 4, topic_name: '医疗健康', rule_type: '情感告警', status: 'resolved', triggered_at: '07:15' },
-  { id: 5, topic_name: '新能源汽车', rule_type: '数量告警', status: 'pending', triggered_at: '06:50' }
-])
+// 平台分布数据
+const platformDistribution = ref([])
+
+// 趋势数据
+const trendData = ref({
+  dates: [],
+  post_counts: [],
+  sentiment_scores: []
+})
 
 // 统计卡片配置
 const summaryCards = computed(() => [
@@ -91,6 +87,7 @@ const summaryCards = computed(() => [
 ])
 
 function formatNumber(num) {
+  if (!num) return '0'
   if (num >= 10000) return (num / 10000).toFixed(1) + '万'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
   return num.toString()
@@ -146,87 +143,26 @@ const sentimentDistributionOption = computed(() => ({
 }))
 
 // 平台分布柱状图
-const platformDistributionOption = computed(() => ({
-  tooltip: {
-    trigger: 'axis',
-    axisPointer: {
-      type: 'shadow'
-    }
-  },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
-    containLabel: true
-  },
-  xAxis: {
-    type: 'value',
-    axisLabel: {
-      color: '#606266'
-    },
-    splitLine: {
-      lineStyle: {
-        color: '#EBEEF5'
-      }
-    }
-  },
-  yAxis: {
-    type: 'category',
-    data: ['微博', '微信', '抖音', '知乎', '小红书'],
-    axisLabel: {
-      color: '#606266'
-    }
-  },
-  series: [
-    {
-      name: '帖子数量',
-      type: 'bar',
-      data: [
-        { value: 4520, itemStyle: { color: '#ff8200' } },
-        { value: 3890, itemStyle: { color: '#07c160' } },
-        { value: 5670, itemStyle: { color: '#000000' } },
-        { value: 2340, itemStyle: { color: '#0084ff' } },
-        { value: 1890, itemStyle: { color: '#ff2442' } }
-      ],
-      itemStyle: {
-        borderRadius: [0, 4, 4, 0]
-      },
-      label: {
-        show: true,
-        position: 'right',
-        color: '#606266'
-      }
-    }
-  ]
-}))
+const platformDistributionOption = computed(() => {
+  const platforms = platformDistribution.value.map(p => p.name)
+  const values = platformDistribution.value.map(p => p.value)
+  const colors = platformDistribution.value.map(p => p.color)
 
-// 7日趋势折线图
-const trendOption = computed(() => ({
-  tooltip: {
-    trigger: 'axis'
-  },
-  legend: {
-    data: ['帖子数量', '情感分数']
-  },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
-    containLabel: true
-  },
-  xAxis: {
-    type: 'category',
-    boundaryGap: false,
-    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-    axisLabel: {
-      color: '#606266'
-    }
-  },
-  yAxis: [
-    {
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
       type: 'value',
-      name: '帖子数',
-      position: 'left',
       axisLabel: {
         color: '#606266'
       },
@@ -236,62 +172,151 @@ const trendOption = computed(() => ({
         }
       }
     },
-    {
-      type: 'value',
-      name: '情感分',
-      position: 'right',
+    yAxis: {
+      type: 'category',
+      data: platforms,
       axisLabel: {
         color: '#606266'
-      },
-      splitLine: {
-        show: false
-      }
-    }
-  ],
-  series: [
-    {
-      name: '帖子数量',
-      type: 'line',
-      data: [820, 932, 901, 934, 1290, 1330, 1243],
-      smooth: true,
-      itemStyle: {
-        color: '#409EFF'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-          { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
-        ])
       }
     },
-    {
-      name: '情感分数',
-      type: 'line',
-      yAxisIndex: 1,
-      data: [0.15, 0.12, 0.18, 0.08, 0.22, 0.25, 0.12],
-      smooth: true,
-      itemStyle: {
-        color: '#67C23A'
+    series: [
+      {
+        name: '帖子数量',
+        type: 'bar',
+        data: values.map((v, i) => ({
+          value: v,
+          itemStyle: { color: colors[i] || '#409EFF' }
+        })),
+        itemStyle: {
+          borderRadius: [0, 4, 4, 0]
+        },
+        label: {
+          show: true,
+          position: 'right',
+          color: '#606266'
+        }
       }
-    }
-  ]
-}))
+    ]
+  }
+})
+
+// 7日趋势折线图
+const trendOption = computed(() => {
+  const dates = trendData.value.dates.map(d => {
+    const date = new Date(d)
+    return `${date.getMonth() + 1}/${date.getDate()}`
+  })
+
+  return {
+    tooltip: {
+      trigger: 'axis'
+    },
+    legend: {
+      data: ['帖子数量', '情感分数']
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: dates,
+      axisLabel: {
+        color: '#606266'
+      }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '帖子数',
+        position: 'left',
+        axisLabel: {
+          color: '#606266'
+        },
+        splitLine: {
+          lineStyle: {
+            color: '#EBEEF5'
+          }
+        }
+      },
+      {
+        type: 'value',
+        name: '情感分',
+        position: 'right',
+        axisLabel: {
+          color: '#606266'
+        },
+        splitLine: {
+          show: false
+        }
+      }
+    ],
+    series: [
+      {
+        name: '帖子数量',
+        type: 'line',
+        data: trendData.value.post_counts,
+        smooth: true,
+        itemStyle: {
+          color: '#409EFF'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+            { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
+          ])
+        }
+      },
+      {
+        name: '情感分数',
+        type: 'line',
+        yAxisIndex: 1,
+        data: trendData.value.sentiment_scores,
+        smooth: true,
+        itemStyle: {
+          color: '#67C23A'
+        }
+      }
+    ]
+  }
+})
 
 async function load() {
   loading.value = true
   try {
-    // TODO: 调用真实API
-    // const [ts, ps, als] = await Promise.all([
-    //   getTopicStats(),
-    //   getPostStats(),
-    //   getAlertStats()
-    // ])
+    // 并行加载所有数据
+    const [ts, ps, als, ht, ra] = await Promise.all([
+      getTopicStats(),
+      getPostStats(),
+      getAlertStats(),
+      getHotTopics({ limit: 5 }),
+      getRecentAlerts({ limit: 5 })
+    ])
 
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 500))
+    topicStats.value = ts
+    postStats.value = ps
+    alertStats.value = als
+    hotTopics.value = ht.results || ht || []
+    recentAlerts.value = ra.results || ra || []
+
+    // 平台分布
+    platformDistribution.value = ps.platform_distribution || []
+
+    // 趋势数据 - 从post stats中提取
+    if (ps.trend_data) {
+      trendData.value = {
+        dates: ps.trend_data.map(t => t.date),
+        post_counts: ps.trend_data.map(t => t.count),
+        sentiment_scores: ps.trend_data.map(t => 0) // 后端暂未提供
+      }
+    }
 
     lastUpdateTime.value = new Date().toLocaleString('zh-CN')
   } catch (e) {
+    console.error('加载失败:', e)
     ElMessage.error(e?.message || '加载数据失败')
   } finally {
     loading.value = false
@@ -303,12 +328,7 @@ function refresh() {
 }
 
 const getStatusClass = (status) => {
-  const classes = {
-    pending: 'status-badge pending',
-    acknowledged: 'status-badge acknowledged',
-    resolved: 'status-badge resolved'
-  }
-  return classes[status] || ''
+  return { 'status-badge': true, [status]: true }
 }
 
 const getStatusText = (status) => {
@@ -411,7 +431,7 @@ onMounted(load)
             </template>
           </el-table-column>
           <el-table-column prop="sentiment_score" label="情感分数" min-width="100">
-            <template #default="{ row }">{{ row.sentiment_score.toFixed(2) }}</template>
+            <template #default="{ row }">{{ row.sentiment_score?.toFixed(2) || 0 }}</template>
           </el-table-column>
         </el-table>
       </div>
@@ -426,7 +446,7 @@ onMounted(load)
         </div>
         <el-table :data="recentAlerts" size="small" v-loading="loading">
           <el-table-column prop="topic_name" label="话题" min-width="100" />
-          <el-table-column prop="rule_type" label="规则类型" min-width="100" />
+          <el-table-column prop="rule_type_display" label="规则类型" min-width="100" />
           <el-table-column label="状态" min-width="80">
             <template #default="{ row }">
               <span :class="getStatusClass(row.status)">
@@ -434,7 +454,7 @@ onMounted(load)
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="triggered_at" label="触发时间" min-width="80" />
+          <el-table-column prop="triggered_at_formatted" label="触发时间" min-width="80" />
         </el-table>
       </div>
     </div>
@@ -596,5 +616,43 @@ onMounted(load)
 .sentiment-tag.negative {
   background-color: rgba(245, 108, 108, 0.1);
   color: var(--sentiment-negative);
+}
+
+.mb-lg {
+  margin-bottom: 20px;
+}
+
+.content-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.content-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.content-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.content-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1200px) {
+  .content-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .content-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .content-grid-2,
+  .content-grid-3,
+  .content-grid-4 {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

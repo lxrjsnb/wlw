@@ -115,3 +115,14 @@ class TopicViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = TopicListSerializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def hot(self, request):
+        """获取热门话题列表 (按帖子数量排序)"""
+        limit = int(request.query_params.get('limit', 10))
+        # 获取活跃话题并按帖子数量排序 (使用 annotate 计算帖子数)
+        queryset = self.get_queryset().filter(status='active').annotate(
+            post_count=Count('posts')
+        ).order_by('-post_count')[:limit]
+        serializer = TopicListSerializer(queryset, many=True)
+        return Response(serializer.data)

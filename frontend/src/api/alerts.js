@@ -2,6 +2,11 @@
  * 预警相关API
  */
 import request from './http'
+import { createAPI } from './factory'
+
+// 使用工厂模式创建API (可选使用)
+export const alertRulesAPI = createAPI('/api/v1/alerts/rules')
+export const alertRecordsAPI = createAPI('/api/v1/alerts/records')
 
 /**
  * 获取预警规则列表
@@ -158,5 +163,16 @@ export function batchResolveAlerts(data) {
     url: '/api/v1/alerts/records/batch_resolve/',
     method: 'post',
     data
+  })
+}
+
+/**
+ * 获取最新预警
+ */
+export function getRecentAlerts(params = {}) {
+  return request({
+    url: '/api/v1/alerts/records/recent/',
+    method: 'get',
+    params
   })
 }

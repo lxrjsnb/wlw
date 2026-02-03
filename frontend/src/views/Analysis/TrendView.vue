@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { getTopics } from '../../api/topics'
+import { getTrendAnalysis, getPlatformCompare, getInfluenceRanking } from '../../api/analysis'
 import VChart from 'vue-echarts'
 
 const loading = ref(false)
@@ -27,57 +28,12 @@ const rankingData = ref({
   top_authors: []
 })
 
-// 初始化时直接生成模拟数据
-const initializeMockData = () => {
-  // 生成过去7天的日期
-  const dates = []
-  const postCounts = []
-  const sentimentScores = []
-  const influenceScores = []
-
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    dates.push(`${date.getMonth() + 1}/${date.getDate()}`)
-    postCounts.push(Math.floor(Math.random() * 500) + 100)
-    sentimentScores.push(Math.random() * 2 - 1)
-    influenceScores.push(Math.random() * 100)
-  }
-
-  trendData.value = {
-    dates,
-    post_counts: postCounts,
-    sentiment_scores: sentimentScores,
-    influence_scores: influenceScores
-  }
-
-  platformData.value = {
-    platforms: ['微博', '微信', '抖音', '知乎', 'B站'],
-    post_counts: [Math.floor(Math.random() * 1000) + 200, Math.floor(Math.random() * 500) + 100, Math.floor(Math.random() * 800) + 150, Math.floor(Math.random() * 300) + 50, Math.floor(Math.random() * 400) + 80],
-    sentiment_scores: [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()],
-    engagement_rates: [Math.random() * 10 + 2, Math.random() * 5 + 1, Math.random() * 15 + 3, Math.random() * 8 + 2, Math.random() * 12 + 2]
-  }
-
-  rankingData.value = {
-    top_posts: Array.from({ length: 10 }, (_, i) => ({
-      content: `这是第 ${i + 1} 条热门帖子的内容摘要，展示了用户的观点和讨论...`,
-      author: `用户${Math.floor(Math.random() * 10000)}`,
-      influence_score: Math.random() * 100
-    })),
-    top_authors: Array.from({ length: 10 }, (_, i) => ({
-      author: `KOL作者${i + 1}`,
-      total_posts: Math.floor(Math.random() * 100) + 10,
-      avg_influence: Math.random() * 100
-    }))
-  }
-}
-
-// 立即初始化数据
-initializeMockData()
-
 // 趋势图表配置
 const trendOption = computed(() => {
-  const dates = trendData.value?.dates || []
+  const dates = trendData.value?.dates?.map(d => {
+    const date = new Date(d)
+    return `${date.getMonth() + 1}/${date.getDate()}`
+  }) || []
   const post_counts = trendData.value?.post_counts || []
   const sentiment_scores = trendData.value?.sentiment_scores || []
   const influence_scores = trendData.value?.influence_scores || []
@@ -161,50 +117,44 @@ async function loadTopics() {
 async function load() {
   loading.value = true
   try {
-    // 模拟数据生成
-    await new Promise(resolve => setTimeout(resolve, 500))
+    const params = selectedTopic.value ? { topic: selectedTopic.value } : {}
 
-    // 生成过去7天的日期
-    const dates = []
-    const postCounts = []
-    const sentimentScores = []
-    const influenceScores = []
+    // 并行加载所有数据
+    const [trend, platform, ranking] = await Promise.all([
+      getTrendAnalysis(params),
+      getPlatformCompare(params),
+      getInfluenceRanking(params)
+    ])
 
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      dates.push(`${date.getMonth() + 1}/${date.getDate()}`)
-      postCounts.push(Math.floor(Math.random() * 500) + 100)
-      sentimentScores.push(Math.random() * 2 - 1)
-      influenceScores.push(Math.random() * 100)
+    // 处理趋势数据
+    if (trend) {
+      trendData.value = {
+        dates: trend.dates || [],
+        post_counts: trend.post_counts || [],
+        sentiment_scores: trend.sentiment_scores || [],
+        influence_scores: trend.influence_scores || []
+      }
     }
 
-    trendData.value = {
-      dates,
-      post_counts: postCounts,
-      sentiment_scores: sentimentScores,
-      influence_scores: influenceScores
+    // 处理平台数据
+    if (platform) {
+      platformData.value = {
+        platforms: platform.platforms || [],
+        post_counts: platform.post_counts || [],
+        sentiment_scores: platform.sentiment_scores || [],
+        engagement_rates: platform.engagement_rates || []
+      }
     }
 
-    platformData.value = {
-      platforms: ['微博', '微信', '抖音', '知乎', 'B站'],
-      post_counts: [Math.floor(Math.random() * 1000) + 200, Math.floor(Math.random() * 500) + 100, Math.floor(Math.random() * 800) + 150, Math.floor(Math.random() * 300) + 50, Math.floor(Math.random() * 400) + 80],
-      sentiment_scores: [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()],
-      engagement_rates: [Math.random() * 10 + 2, Math.random() * 5 + 1, Math.random() * 15 + 3, Math.random() * 8 + 2, Math.random() * 12 + 2]
+    // 处理排行数据
+    if (ranking) {
+      rankingData.value = {
+        top_posts: ranking.top_posts || [],
+        top_authors: ranking.top_authors || []
+      }
     }
-
-    rankingData.value = {
-      top_posts: Array.from({ length: 10 }, (_, i) => ({
-        content: `这是第 ${i + 1} 条热门帖子的内容摘要，展示了用户的观点和讨论...`,
-        author: `用户${Math.floor(Math.random() * 10000)}`,
-        influence_score: Math.random() * 100
-      })),
-      top_authors: Array.from({ length: 10 }, (_, i) => ({
-        author: `KOL作者${i + 1}`,
-        total_posts: Math.floor(Math.random() * 100) + 10,
-        avg_influence: Math.random() * 100
-      }))
-    }
+  } catch (e) {
+    console.error('加载失败:', e)
   } finally {
     loading.value = false
   }
@@ -224,7 +174,7 @@ onMounted(() => {
         <p class="page-subtitle">分析帖子的数量、情感和影响力趋势</p>
       </div>
       <div class="header-actions">
-        <el-select v-model="selectedTopic" placeholder="选择话题" style="width: 200px; margin-right: 12px">
+        <el-select v-model="selectedTopic" placeholder="选择话题" style="width: 200px; margin-right: 12px" @change="load">
           <el-option label="全部话题" value="" />
           <el-option v-for="t in topics" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
@@ -261,7 +211,9 @@ onMounted(() => {
         <el-table :data="rankingData.top_posts?.slice(0, 5)" size="small" v-loading="loading" max-height="280">
           <el-table-column prop="content" label="内容" min-width="150" show-overflow-tooltip />
           <el-table-column prop="author" label="作者" width="100" />
-          <el-table-column prop="influence_score" label="影响力" width="80" />
+          <el-table-column prop="influence_score" label="影响力" width="80">
+            <template #default="{ row }">{{ row.influence_score?.toFixed(1) || 0 }}</template>
+          </el-table-column>
         </el-table>
       </div>
     </div>
@@ -286,5 +238,18 @@ onMounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
+}
+
+.mb-lg {
+  margin-bottom: 20px;
+}
+
+.content-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.content-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
 }
 </style>

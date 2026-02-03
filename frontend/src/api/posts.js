@@ -2,6 +2,10 @@
  * 帖子相关API
  */
 import request from './http'
+import { createAPI, createStatsAPI } from './factory'
+
+// 使用工厂模式创建API (可选使用)
+export const postsAPI = createStatsAPI('/api/v1/posts')
 
 /**
  * 获取帖子列表

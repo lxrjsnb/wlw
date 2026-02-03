@@ -1,33 +1,140 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { h } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, View, Refresh } from '@element-plus/icons-vue'
-import { getTopics, deleteTopic, pauseTopic, activateTopic } from '../../api/topics'
+import { Plus, Edit, Delete, View } from '@element-plus/icons-vue'
+import PaginatedList from '../../components/PaginatedList.vue'
+import { deleteTopic, pauseTopic, activateTopic } from '../../api/topics'
 
-const loading = ref(false)
-const topics = ref([])
-const total = ref(0)
+const router = useRouter()
 
-const queryParams = ref({
-  page: 1,
-  page_size: 20,
-  status: '',
-  search: ''
-})
-
-async function load() {
-  loading.value = true
-  try {
-    const data = await getTopics(queryParams.value)
-    topics.value = data.results || data
-    total.value = data.count || topics.value.length
-  } catch (e) {
-    ElMessage.error('加载失败')
-  } finally {
-    loading.value = false
+// 列配置
+const columns = [
+  {
+    prop: 'name',
+    label: '话题名称',
+    minWidth: 150
+  },
+  {
+    prop: 'description',
+    label: '描述',
+    minWidth: 200,
+    showOverflowTooltip: true
+  },
+  {
+    prop: 'keywords',
+    label: '关键词',
+    minWidth: 150,
+    slot: 'keywords'
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    width: 100,
+    slot: 'status'
+  },
+  {
+    prop: 'platform_count',
+    label: '平台数',
+    width: 80
+  },
+  {
+    prop: 'post_count',
+    label: '帖子数',
+    width: 80
   }
+]
+
+// 行操作按钮
+function createRowActions(row) {
+  const actions = [
+    h(
+      'el-button',
+      {
+        icon: View,
+        link: true,
+        type: 'primary',
+        size: 'small',
+        onClick: () => router.push(`/topics/${row.id}`)
+      },
+      () => '查看'
+    ),
+    h(
+      'el-button',
+      {
+        icon: Edit,
+        link: true,
+        type: 'primary',
+        size: 'small',
+        onClick: () => router.push(`/topics/${row.id}/edit`)
+      },
+      () => '编辑'
+    )
+  ]
+
+  // 状态切换按钮
+  if (row.status === 'active') {
+    actions.push(
+      h(
+        'el-button',
+        {
+          link: true,
+          type: 'warning',
+          size: 'small',
+          onClick: () => handlePause(row)
+        },
+        () => '暂停'
+      )
+    )
+  } else {
+    actions.push(
+      h(
+        'el-button',
+        {
+          link: true,
+          type: 'success',
+          size: 'small',
+          onClick: () => handleActivate(row)
+        },
+        () => '激活'
+      )
+    )
+  }
+
+  actions.push(
+    h(
+      'el-button',
+      {
+        icon: Delete,
+        link: true,
+        type: 'danger',
+        size: 'small',
+        onClick: () => handleDelete(row)
+      },
+      () => '删除'
+    )
+  )
+
+  return h('div', { class: 'row-actions' }, actions)
 }
 
+// 工具栏操作
+const toolbarActions = [
+  {
+    label: '新建话题',
+    type: 'primary',
+    icon: Plus,
+    handler: () => router.push('/topics/new')
+  }
+]
+
+// 获取数据的函数
+async function fetchTopics(params) {
+  const { getTopics } = await import('../../api/topics')
+  return getTopics(params)
+}
+
+// 删除处理
 async function handleDelete(row) {
   try {
     await ElMessageBox.confirm('确定要删除这个话题吗？', '提示', {
@@ -35,37 +142,43 @@ async function handleDelete(row) {
     })
     await deleteTopic(row.id)
     ElMessage.success('删除成功')
-    load()
+    return true // 返回true表示需要刷新
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败')
+    if (e !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+    return false
   }
 }
 
+// 暂停处理
 async function handlePause(row) {
   try {
     await pauseTopic(row.id)
     ElMessage.success('已暂停')
-    load()
+    return true
   } catch (e) {
     ElMessage.error('操作失败')
+    return false
   }
 }
 
+// 激活处理
 async function handleActivate(row) {
   try {
     await activateTopic(row.id)
     ElMessage.success('已激活')
-    load()
+    return true
   } catch (e) {
     ElMessage.error('操作失败')
+    return false
   }
 }
 
+// 获取状态样式
 function getStatusClass(status) {
   return { 'status-badge': true, [status]: true }
 }
-
-onMounted(load)
 </script>
 
 <template>
@@ -75,59 +188,42 @@ onMounted(load)
         <h1 class="page-title">话题管理</h1>
         <p class="page-subtitle">管理社交媒体监控话题</p>
       </div>
-      <el-button :icon="Plus" type="primary">新建话题</el-button>
     </div>
 
     <div class="card">
-      <el-table :data="topics" v-loading="loading" stripe>
-        <el-table-column prop="name" label="话题名称" min-width="150" />
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="关键词" min-width="150">
-          <template #default="{ row }">
-            <el-tag v-for="kw in row.keywords?.slice(0, 3)" :key="kw" size="small" class="mr-sm">
-              {{ kw }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <span :class="getStatusClass(row.status)">
-              {{ row.status_display || row.status }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="platform_count" label="平台数" width="80" />
-        <el-table-column prop="post_count" label="帖子数" width="80" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button :icon="View" link type="primary" size="small">查看</el-button>
-            <el-button :icon="Edit" link type="primary" size="small">编辑</el-button>
-            <el-button v-if="row.status === 'active'" link type="warning" size="small" @click="handlePause(row)">暂停</el-button>
-            <el-button v-else link type="success" size="small" @click="handleActivate(row)">激活</el-button>
-            <el-button :icon="Delete" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <PaginatedList
+        :fetch-function="fetchTopics"
+        :columns="columns"
+        :row-actions="createRowActions"
+        :toolbar-actions="toolbarActions"
+      >
+        <template #keywords="{ row }">
+          <el-tag
+            v-for="kw in row.keywords?.slice(0, 3)"
+            :key="kw"
+            size="small"
+            class="mr-sm"
+          >
+            {{ kw }}
+          </el-tag>
+        </template>
 
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="queryParams.page"
-          :page-size="queryParams.page_size"
-          :total="total"
-          layout="total, prev, pager, next"
-          @current-change="load"
-        />
-      </div>
+        <template #status="{ row }">
+          <span :class="getStatusClass(row.status)">
+            {{ row.status_display || row.status }}
+          </span>
+        </template>
+      </PaginatedList>
     </div>
   </div>
 </template>
 
 <style scoped>
-.pagination-container {
+.row-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
+  gap: 4px;
 }
+
 .mr-sm {
   margin-right: 4px;
 }
